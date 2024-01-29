@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top N Store Paths</title>
+    <style>
+        .dropdown {
+            display: none;
+        }
+
+        .dropdown.active {
+            display: block;
+        }
+
+        .number-selector-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .number-selector {
+            margin-right: 20px;
+        }
+
+        .highlight {
+            background-color: yellow;
+        }
+
+        .green-text {
+            color: green;
+        }
+
+        .red-text {
+            color: red;
+        }
+
+        /* tree */
+        .caret {
+            cursor: pointer;
+            user-select: none;
+            color: blue;
+        }
+
+        .caret::before {
+            content: "\25B6";
+            color: black;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .caret-down::before {
+            transform: rotate(90deg);
+        }
+
+        .nested {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        .column {
+            box-sizing: border-box;
+            width: 50%;
+            float: left;
+            padding: 20px;
+        }
+
+        .inline-paragraph {
+            display: inline;
+            margin-right: 10px;
+            /* Optional: Add some spacing between paragraphs */
+        }
+        .close-button {
+      background-color: white; /* Red background color */
+      border: none; /* No border */
+      cursor: pointer; /* Change cursor to pointer on hover */
+    
+    }
+    </style>
+</head>
+
+
+<body>
+    <h1>Top N Store Paths</h1>
+    <form action="/process" method="post">
+        <div>
+            <label for="quantity">Display the top: </label>
+            <input type="number" id="quantity" name="quantity" min="1" max="500">
+            <label for="sortKey1Select">, by: </label>
+            <select id="sortKey1Select" name="sort_key_1_select" default="entropy">
+                {% for sort_key in sort_keys %}
+                <option value="{{ sort_key }}">{{ sort_key }}</option>
+                {% endfor %}
+            </select>
+            <!-- minimum entropy input -->
+            <label for="minimum_entropy">, with a minimum of: </label>
+            <input type="number" id="minimum_entropy" name="minimum_entropy" min="1" max="500">
+
+            <!-- minimum file size input -->
+            <label for="minimum_file_size"> entropy, and a minimum file size of: </label>
+            <input type="number" id="minimum_file_size" name="minimum_file_size" min="1" max="500">
+
+            <label for="sortKey2Select">MB, sorted by: </label>
+            <select id="sortKey2Select" name="sort_key_2_select">
+                {% for sort_key in sort_keys %}
+                <option value="{{ sort_key }}">{{ sort_key }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- project input -->
+            <label for="projectSelect">, in the project:</label>
+            <select id="projectSelect" name="selected_project">
+                {% for project in projects %}
+                <option value="{{ project.name }}">{{ project.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Generate</button>
+        </div>
+
+    </form>
+    <div class="container">
+        <div class="column" id="left-column">
+            <!-- Content for the left column goes here -->
+            <ul>
+                {% for path, details in top_n_values %}
+                <li>
+                    <span class="dropdown-trigger" onclick="toggleDropdown('{{ path }}')">{{ path }}</span>
+                    <p>File Size: {{ details.file_size }}</p>
+                    <p>Entropy: {{ details.entropy }}</p>
+                    <p>Dependency Weight (Nodes): {{ details.node_dependency_weight }}</p>
+                    <p>Dependency Weight (File Size): {{ details.file_size_dependency_weight }}</p>
+                    <div class="dropdown" id="{{ path }}">
+                        <div>
+                            <p>Explore the Dependency Tree At :</p>
+                            <!-- base jobset input -->
+                            <label for="storePathSelect">Store path:</label>
+                            <select id="storePathSelect" name="storePathSelect">
+                                {% for store_path in details.store_paths %}
+                                <option value="{{ store_path }}">{{ store_path }}</option>
+                                {% endfor %}
+                            </select>
+                            <button onclick="replacePath(this)" type="submit">Go</button>
+
+                        </div>
+                        <span>
+                            <span class="caret" data-path="{{ details.last_instance_hash }}-{{ path }}"
+                                data-custom-value="{{ details.last_instance_hash }}"
+                                data-store-path-jobsets="{{ details.store_path_jobsets }}"
+                                data-jobset="{{ details.latest_jobset }}" onclick="fetchAndExpand(this)">
+                                {{ details.last_instance_hash }}-{{ path }}
+                            </span>
+                            <button onclick="replaceText(this.parentElement)">Compare</button>
+                            <ul class="nested">
+                        </span>
+            </ul>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reverse Dependency</th>
+                        <th>Earliest Occurence</th>
+                        <th>Latest Occurence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job, reverse_dependencies in details.reverse_dependencies.items() %}
+                    <tr>
+                        <td>{{ job }}</td>
+                        <td class="{% if reverse_dependencies.earliest != earliest_jobset %} highlight {% endif %}">
+                            {{ reverse_dependencies.earliest }}
+                        </td>
+                        <td class="{% if reverse_dependencies.latest != latest_jobset %} highlight {% endif %}">
+                            {{ reverse_dependencies.latest}}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <!-- <tr>
+                                <td>simRobotContainer.x86_64-linux</td>
+                                <td>v2.32.0-20240108033829-0</td>
+                                <td>v2.32.0-20240122145006-0</td>
+                            </tr> -->
+                    <!-- Add more rows for additional keys as needed -->
+                </tbody>
+            </table>
+            <!-- <p>Reverse Dependencies: {{ details.reverse_dependencies }}</p> -->
+            <!-- Add more details as needed -->
+        </div>
+        </li>
+        {% endfor %}
+        </ul>
+    </div>
+    <div class="column" id="right-column">
+        <!-- Content for the right column goes here -->
+        <h2>Comparison</h2>
+        <label for="jobsetSelect">Included jobsets: </label>
+        <select id="jobsetSelect" multiple>
+            {% for jobset in jobsets %}
+            <option value="{{ jobset }}">{{ jobset }}</option>
+            {% endfor %}
+        </select>
+        <style>
+            .outer-container {
+              display: flex;
+              align-items: center;
+            }
+          
+            .inner-container {
+              display: flex;
+              align-items: center;
+              margin-left: 10px; /* Adjust the margin as needed */
+            }
+          </style>
+          
+          <div class="outer-container">
+            <p class="inline-paragraph">Base:</p>
+            <div class="inner-container">
+              <p class="inline-paragraph" id="base"></p>
+            </div>
+          </div>
+          
+          <div class="outer-container">
+            <p class="inline-paragraph">Comparison:</p>
+            <div class="inner-container">
+              <p class="inline-paragraph" id="compare"></p>
+            </div>
+          </div>
+          
+        <button onclick="compare()">Generate</button>
+        <ul id="list"></ul>
+    </div>
+    </div>
+
+
+    <script>
+        function toggleDropdown(path) {
+            var dropdown = document.getElementById(path);
+            dropdown.classList.toggle('active');
+        }
+    </script>
+    <script>
+
+        var earliest_jobset = '{{ earliest_jobset }}';
+
+        var latest_jobset = '{{ latest_jobset }}';
+
+        var latest_instance_hash = '{{ latest_instance_hash }}';
+
+        var category = '{{ latest_instance_hash }}';
+
+        var jobsets = '{{ jobsets }}'; 
+
+        console.log(jobsets[1]);
+
+        console.log(latest_jobset);
+        // first sort key
+
+        var defaultSelectedValue1 = '{{ selected_sort_key_1 }}';
+
+        var selectElement1 = document.getElementById("sortKey1Select");
+
+        for (var i = 0; i < selectElement1.options.length; i++) {
+            if (selectElement1.options[i].value === defaultSelectedValue1) {
+                selectElement1.options[i].selected = true;
+                break;
+            }
+        }
+
+        // second sort key
+
+        var defaultSelectedValue2 = '{{ selected_sort_key_2 }}';
+
+        var selectElement2 = document.getElementById("sortKey2Select");
+
+        for (var i = 0; i < selectElement2.options.length; i++) {
+            if (selectElement2.options[i].value === defaultSelectedValue2) {
+                selectElement2.options[i].selected = true;
+                break;
+            }
+        }
+
+        // project 
+
+        var defaultSelectedProject = '{{ selected_project }}';
+
+        var projectSelect = document.getElementById("projectSelect");
+
+        for (var i = 0; i < projectSelect.options.length; i++) {
+            if (projectSelect.options[i].value === defaultSelectedProject) {
+                projectSelect.options[i].selected = true;
+                break;
+            }
+        }
+
+        // select
+
+        var defaultValue = '{{ selected_quantity }}';
+
+        var quantityInput = document.getElementById("quantity");
+
+        quantityInput.value = defaultValue;
+
+        // minimum entropy
+
+        var defaultMinimumEntropyValue = '{{ default_minimum_entropy }}';
+
+        var minimumEntropyInput = document.getElementById("minimum_entropy");
+
+        minimumEntropyInput.value = defaultMinimumEntropyValue;
+
+        // minimum file size
+
+        var defaultMinimumFileSizeValue = '{{ default_minimum_file_size }}';
+
+        var minimumFileSizeInput = document.getElementById("minimum_file_size");
+
+        minimumFileSizeInput.value = defaultMinimumFileSizeValue;
+
+        function removeBranch(button) { 
+            button.parentElement.querySelector(".inline-paragraph").innerText = "";
+            button.remove();
+        }
+
+        function replacePath(goButton) {
+
+            var dropDownElement = goButton.parentElement.parentElement;
+            var caret = dropDownElement.querySelector('.caret');
+            var storePathSelectValue = goButton.parentElement.querySelector("select").value;
+            var parts = storePathSelectValue.split('-');
+            var hash = parts[0];
+            var nested = caret.parentElement.querySelector('.nested');
+            caret.setAttribute('data-path', storePathSelectValue);
+            caret.setAttribute('data-custom-value', hash);
+            caret.innerHTML = storePathSelectValue;
+            nested.innerHTML = "";
+        }
+
+        function replaceText(caret) {
+
+            var caret = caret.parentElement.querySelector('.caret');
+            var hash = caret.getAttribute("data-custom-value");
+            var path = caret.getAttribute("data-path");
+            var base = document.getElementById("base");
+            var compare = document.getElementById("compare");
+            var storePathJobsets = caret.getAttribute("data-store-path-jobsets");
+
+            console.log(storePathJobsets);
+
+            if (base.innerText == "") {
+
+                base.setAttribute("data-custom-value", hash);
+                base.innerText = path;
+                base.parentElement.innerHTML += '<button class="close-button" onclick="removeBranch(this)">x</button>';
+
+            } else if (compare.innerText == "") {
+                compare.setAttribute("data-custom-value", hash);
+                compare.innerText = path;
+                compare.parentElement.innerHTML += '<button class="close-button" onclick="removeBranch(this)">x</button>';
+
+            } else { 
+
+                compare.setAttribute("data-custom-value", hash);
+                compare.innerText = path;
+
+            }
+        }
+
+        function getSelectedJobsets() {
+
+            var selectedJobsets = [];
+            var selectElement = document.getElementById("jobsetSelect");
+
+            for (var i = 0; i < selectElement.options.length; i++) {
+                var option = selectElement.options[i];
+                if (option.selected) {
+                    selectedJobsets.push(option.value);
+                }
+            }
+
+            return selectedJobsets;
+        }
+
+        function compare() {
+
+            var base = document.getElementById("base");
+            var compare = document.getElementById("compare");
+            var baseHash = base.getAttribute('data-custom-value');
+            var compareHash = compare.getAttribute('data-custom-value');
+            var jobsets = getSelectedJobsets();
+
+            var serializedJobsetsArray = JSON.stringify(jobsets);
+
+            var url = '/compare/' + projectSelect.value + '/' + baseHash + '/' + compareHash + "?jobsets=" + encodeURIComponent(serializedJobsetsArray);
+
+            $.get(url, function (data) {
+
+                console.log(data);
+                var list = document.getElementById("list");
+
+                data.forEach(function (item) {
+                    console.log(item);
+                    console.log(i)
+
+                    var listElement = document.getElementById('list');
+                    var listItem = document.createElement('li');
+                    listItem.textContent = item[0];
+
+                    if (item[1] == 'overlap') {
+                        listItem.classList.add('green-text');
+                    } else {
+                        listItem.classList.add('red-text');
+                    }
+
+                    listElement.appendChild(listItem);
+
+                });
+            });
+        }
+
+
+        function fetchAndExpand(parentElement) {
+
+            var caret = parentElement;
+            var nestedList = caret.parentElement.querySelector('.nested');
+            var hash = parentElement.getAttribute("data-custom-value");
+
+            // Get all <li> elements within the <ul>
+            var liElements = nestedList.querySelectorAll('li');
+
+            var itemCount = liElements.length;
+
+            if ((itemCount == 0) || (nestedList.innerHTML.trim() === '')) {
+                // Fetch children nodes from the server using AJAX
+                $.get('/get_children/' + hash, function (data) {
+
+                    // Append children nodes to the nested list
+                    data.forEach(function (childNode) {
+                        var parts = childNode.split('-');
+                        hash = parts[0];
+                        key = parts[1];
+
+                        // Set content for the li element
+                        nestedList.innerHTML += '<li>\
+                <span>\
+                <span\
+                class="caret"\
+                onclick="fetchAndExpand(this)"\
+                data-path="' + childNode + '"\
+                data-custom-value="'
+                            + hash
+                            + '">'
+                            + childNode
+                            + '</span><ul class="nested"></ul>\
+                <button onclick="replaceText(this.parentElement)">Compare</button>\
+                <span>\
+                </li>\
+                ';
+
+                    });
+
+                    // Expand the nested list
+                    caret.classList.toggle('caret-down');
+                    nestedList.classList.toggle('active');
+                });
+
+            } else {
+
+                // Toggle the caret and nested list without fetching from the server
+                caret.classList.toggle('caret-down');
+                nestedList.classList.toggle('active');
+
+            }
+        }
+
+
+    </script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+</body>
+
+</html>

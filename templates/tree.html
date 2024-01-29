@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Tree</title>
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <style>
+    .caret {
+      cursor: pointer;
+      user-select: none;
+      color: blue;
+    }
+    .caret::before {
+      content: "\25B6";
+      color: black;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .caret-down::before {
+      transform: rotate(90deg);
+    }
+    .nested {
+      display: none;
+    }
+    .active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<ul id="myUL">
+  <li><span class="caret" onclick="fetchAndExpand(category)">Beverages</span>
+    <ul class="nested">
+      <li>Water</li>
+      <li>Coffee</li>
+      <li><span class="caret" onclick="fetchAndExpand('Tea')">Tea</span>
+        <ul class="nested">
+          <!-- Child nodes will be dynamically added here -->
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<script>
+  function fetchAndExpand(parentNode) {
+    var caret = document.querySelector('span[onclick="fetchAndExpand(\'' + parentNode + '\')"]');
+    var nestedList = caret.parentElement.querySelector('.nested');
+    console.log("parentNode: ", parentNode);
+    console.log("this thing: ", (nestedList.innerHTML.trim()));
+    // Get all <li> elements within the <ul>
+    var liElements = nestedList.querySelectorAll('li');
+
+    // Get the number of items in the list
+    var itemCount = liElements.length;
+
+    // Check if the nested list is already populated
+    if (itemCount == 0 || (nestedList.innerHTML.trim() === '')) {
+      // Fetch children nodes from the server using AJAX
+      $.get('/get_children/' + parentNode, function (data) {
+        console.log("data: ", data);
+        // Append children nodes to the nested list
+        data.forEach(function (childNode) {
+          nestedList.innerHTML += '<li>' + childNode + '</li>';
+        });
+
+        // Expand the nested list
+        caret.classList.toggle('caret-down');
+        nestedList.classList.toggle('active');
+      });
+    } else {
+      console.log("else");
+      // Toggle the caret and nested list without fetching from the server
+      caret.classList.toggle('caret-down');
+      nestedList.classList.toggle('active');
+    }
+  }
+</script>
+
+</body>
+</html>
