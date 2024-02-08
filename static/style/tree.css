@@ -1,0 +1,54 @@
+.dropdown {
+    display: none;
+}
+
+.dropdown.active {
+    display: block;
+}
+
+.number-selector-container {
+    display: flex;
+    align-items: center;
+}
+
+.number-selector {
+    margin-right: 20px;
+}
+
+.highlight {
+    background-color: yellow;
+}
+
+.green-text {
+    color: green;
+}
+
+.red-text {
+    color: red;
+}
+
+/* tree */
+.caret {
+    cursor: pointer;
+    user-select: none;
+    color: blue;
+}
+
+.caret::before {
+    content: "\25B6";
+    color: black;
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.caret-down::before {
+    transform: rotate(90deg);
+}
+
+.nested {
+    display: none;
+}
+
+.active {
+    display: block;
+}

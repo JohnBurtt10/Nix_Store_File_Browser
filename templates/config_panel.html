@@ -1,0 +1,16 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+
+
+<button class="openConfigButton" style="display: inline;" onclick="toggleConfigPanel()">Open Configuration</button>
+
+    <div id="overlay"></div>
+
+    <div id="configPanel">
+        <label style="display: inline;" class="configPanelLabel" for="themeToggle">Recursive Mode:</label>
+        <input style="display: inline;" type="checkbox" id="themeToggle" name="themeToggle">
+        <p>When disabled, only up to secondary dependencies of the main packages are listed and it is O(1) calculation in terms of the total
+            store paths (this is what Mike originally suggested)
+        </p>
+
+        <button class="openConfigButton" onclick="saveConfig()">Save Configuration</button>
+    </div>

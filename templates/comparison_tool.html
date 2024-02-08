@@ -1,0 +1,37 @@
+<h2>Comparison</h2>
+            <label for="jobsetSelect">Included jobsets: </label>
+            <select id="jobsetSelect" multiple>
+                {% for jobset in jobsets %}
+                <option value="{{ jobset }}">{{ jobset }}</option>
+                {% endfor %}
+            </select>
+            <style>
+                .outer-container {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .inner-container {
+                    display: flex;
+                    align-items: center;
+                    margin-left: 10px;
+                    /* Adjust the margin as needed */
+                }
+            </style>
+
+            <div class="outer-container">
+                <p class="inline-paragraph">Base:</p>
+                <div class="inner-container">
+                    <p class="inline-paragraph" id="base"></p>
+                </div>
+            </div>
+
+            <div class="outer-container">
+                <p class="inline-paragraph">Comparison:</p>
+                <div class="inner-container">
+                    <p class="inline-paragraph" id="compare"></p>
+                </div>
+            </div>
+
+            <button onclick="compare()">Generate</button>
+            <ul id="list"></ul>

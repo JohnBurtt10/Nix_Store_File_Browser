@@ -1,0 +1,22 @@
+.column {
+    box-sizing: border-box;
+    width: 50%;
+    float: left;
+    padding: 20px;
+}
+
+.inline-paragraph {
+    display: inline;
+    margin-right: 10px;
+    /* Optional: Add some spacing between paragraphs */
+}
+
+.close-button {
+    background-color: white;
+    /* Red background color */
+    border: none;
+    /* No border */
+    cursor: pointer;
+    /* Change cursor to pointer on hover */
+
+}

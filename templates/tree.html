@@ -1,83 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dynamic Tree</title>
-  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-  <style>
-    .caret {
-      cursor: pointer;
-      user-select: none;
-      color: blue;
-    }
-    .caret::before {
-      content: "\25B6";
-      color: black;
-      display: inline-block;
-      margin-right: 6px;
-    }
-    .caret-down::before {
-      transform: rotate(90deg);
-    }
-    .nested {
-      display: none;
-    }
-    .active {
-      display: block;
-    }
-  </style>
-</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        #configPanel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='config_button.css') }}">
+  </head>
 <body>
 
-<ul id="myUL">
-  <li><span class="caret" onclick="fetchAndExpand(category)">Beverages</span>
-    <ul class="nested">
-      <li>Water</li>
-      <li>Coffee</li>
-      <li><span class="caret" onclick="fetchAndExpand('Tea')">Tea</span>
-        <ul class="nested">
-          <!-- Child nodes will be dynamically added here -->
-        </ul>
-      </li>
-    </ul>
-  </li>
-</ul>
+    <h2>Toggle Configuration</h2>
 
-<script>
-  function fetchAndExpand(parentNode) {
-    var caret = document.querySelector('span[onclick="fetchAndExpand(\'' + parentNode + '\')"]');
-    var nestedList = caret.parentElement.querySelector('.nested');
-    console.log("parentNode: ", parentNode);
-    console.log("this thing: ", (nestedList.innerHTML.trim()));
-    // Get all <li> elements within the <ul>
-    var liElements = nestedList.querySelectorAll('li');
+    <button onclick="toggleConfigPanel()">Open Configuration</button>
 
-    // Get the number of items in the list
-    var itemCount = liElements.length;
+    <div id="overlay"></div>
 
-    // Check if the nested list is already populated
-    if (itemCount == 0 || (nestedList.innerHTML.trim() === '')) {
-      // Fetch children nodes from the server using AJAX
-      $.get('/get_children/' + parentNode, function (data) {
-        console.log("data: ", data);
-        // Append children nodes to the nested list
-        data.forEach(function (childNode) {
-          nestedList.innerHTML += '<li>' + childNode + '</li>';
-        });
+    <div id="configPanel">
+        <label for="themeToggle">Dark Mode:</label>
+        <input type="checkbox" id="themeToggle" name="themeToggle">
 
-        // Expand the nested list
-        caret.classList.toggle('caret-down');
-        nestedList.classList.toggle('active');
-      });
-    } else {
-      console.log("else");
-      // Toggle the caret and nested list without fetching from the server
-      caret.classList.toggle('caret-down');
-      nestedList.classList.toggle('active');
-    }
-  }
-</script>
+        <button onclick="saveConfig()">Save Configuration</button>
+    </div>
+
+    <script>
+        function toggleConfigPanel() {
+            var overlay = document.getElementById('overlay');
+            var configPanel = document.getElementById('configPanel');
+
+            if (configPanel.style.display === 'block') {
+                configPanel.style.display = 'none';
+                overlay.style.display = 'none';
+            } else {
+                configPanel.style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        }
+
+        function saveConfig() {
+            var darkModeEnabled = document.getElementById('themeToggle').checked;
+
+            // You can perform additional actions based on the toggle state here
+
+            alert('Configuration saved successfully!\n\nDark Mode: ' + (darkModeEnabled ? 'Enabled' : 'Disabled'));
+            toggleConfigPanel(); // Close the configuration panel after saving
+        }
+    </script>
 
 </body>
 </html>

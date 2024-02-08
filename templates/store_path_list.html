@@ -1,0 +1,71 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='style/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
+
+<ul>
+    {% for path, details in top_n_values %}
+    <li>
+        <span class="dropdown-trigger" onclick="toggleDropdown('{{ path }}')">{{ path }}</span>
+        <p>File Size: {{ details.file_size }}</p>
+        <p>Entropy: {{ details.entropy }}</p>
+        <p>Dependency Weight (Nodes): {{ details.node_dependency_weight }}</p>
+        <p>Dependency Weight (File Size): {{ details.file_size_dependency_weight }}</p>
+        <p>Reverse Dependency Weight (Nodes): {{ details.reverse_dependency_weight }}</p>
+        <p>Reverse Dependency Weight (File Size): {{ details.file_size_reverse_dependency_weight }}</p>
+        <div class="dropdown" id="{{ path }}">
+            <div>
+                <p>Explore the Dependency Tree At :</p>
+                <!-- base jobset input -->
+                <label for="storePathSelect">Store path:</label>
+                <select id="storePathSelect" name="storePathSelect">
+                    {% for store_path in details.store_paths %}
+                    <option value="{{ store_path }}">{{ store_path }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="replacePath(this)" type="submit">Go</button>
+
+            </div>
+            <span>
+                <span class="caret" data-path="{{ details.last_instance_hash }}-{{ path }}"
+                    data-custom-value="{{ details.last_instance_hash }}"
+                    data-store-path-jobsets="{{ details.store_path_jobsets }}"
+                    data-jobset="{{ details.latest_jobset }}" onclick="fetchAndExpand(this)">
+                    {{ details.last_instance_hash }}-{{ path }}
+                </span>
+                <button onclick="replaceText(this.parentElement)">Compare</button>
+                <ul class="nested">
+            </span>
+</ul>
+<table>
+    <thead>
+        <tr>
+            <th>Reverse Dependency</th>
+            <th>Earliest Occurence</th>
+            <th>Latest Occurence</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job, reverse_dependencies in details.reverse_dependencies.items() %}
+        <tr>
+            <td>{{ job }}</td>
+            <td class="{% if reverse_dependencies.earliest != earliest_jobset %} highlight {% endif %}">
+                {{ reverse_dependencies.earliest }}
+            </td>
+            <td class="{% if reverse_dependencies.latest != latest_jobset %} highlight {% endif %}">
+                {{ reverse_dependencies.latest}}
+            </td>
+        </tr>
+        {% endfor %}
+        <!-- <tr>
+                    <td>simRobotContainer.x86_64-linux</td>
+                    <td>v2.32.0-20240108033829-0</td>
+                    <td>v2.32.0-20240122145006-0</td>
+                </tr> -->
+        <!-- Add more rows for additional keys as needed -->
+    </tbody>
+</table>
+<!-- <p>Reverse Dependencies: {{ details.reverse_dependencies }}</p> -->
+<!-- Add more details as needed -->
+</div>
+</li>
+{% endfor %}
+</ul>
