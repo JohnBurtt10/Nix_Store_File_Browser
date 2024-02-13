@@ -3,14 +3,23 @@
 
 <button class="openConfigButton" style="display: inline;" onclick="toggleConfigPanel()">Open Configuration</button>
 
-    <div id="overlay"></div>
+<div id="overlay"></div>
 
-    <div id="configPanel">
-        <label style="display: inline;" class="configPanelLabel" for="themeToggle">Recursive Mode:</label>
-        <input style="display: inline;" type="checkbox" id="themeToggle" name="themeToggle">
-        <p>When disabled, only up to secondary dependencies of the main packages are listed and it is O(1) calculation in terms of the total
-            store paths (this is what Mike originally suggested)
-        </p>
+<div id="configPanel">
+    <label style="display: inline;" class="configPanelLabel" for="recursiveModeToggle">Recursive Mode:</label>
+    <input style="display: inline;" type="checkbox" id="recursiveModeToggle" name="recursiveModeToggle">
+    <p>When disabled, only up to secondary dependencies of the main packages are listed and it is O(1) calculation in
+        terms of the total
+        store paths (this is what Mike originally suggested)
+    </p>
 
-        <button class="openConfigButton" onclick="saveConfig()">Save Configuration</button>
-    </div>
+    <label style="display: inline;" class="configPanelLabel" for="exponentialBackOffToggle">Nar Info Request Exponential
+        Backoff:</label>
+    <input style="display: inline;" type="checkbox" id="exponentialBackOffToggle" name="exponentialBackOffToggle">
+    <p>When enabled, exponential backoff will be used for each nar info request so this should be enabled when the
+        completeness of the calculation is more important
+        than the speed at which it is performed.
+    </p>
+
+    <button class="openConfigButton" onclick="saveConfig()">Save Configuration</button>
+</div>

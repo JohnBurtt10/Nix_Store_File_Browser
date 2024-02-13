@@ -12,18 +12,22 @@ def extract_earliest_latest_values(input_dict):
                 timestamp_substr = reverse_dependency.split('-')[1]
                 if earliest_value is None or timestamp_substr < earliest_value_timestamp_substr:
                     earliest_value = reverse_dependency
-                    earliest_value_timestamp_substr = reverse_dependency.split('-')[1]
+                    earliest_value_timestamp_substr = reverse_dependency.split(
+                        '-')[1]
                 if latest_value is None or timestamp_substr > latest_value_timestamp_substr:
                     latest_value = reverse_dependency
-                    latest_value_timestamp_substr = reverse_dependency.split('-')[1]
+                    latest_value_timestamp_substr = reverse_dependency.split(
+                        '-')[1]
 
             if dependency in result_dict:
                 # if job in result_dict[dependency]:
-                result_dict[dependency][job] = {'earliest': earliest_value, 'latest': latest_value}
+                result_dict[dependency][job] = {
+                    'earliest': earliest_value, 'latest': latest_value}
                 # else:
             else:
                 result_dict[dependency] = {}
-                result_dict[dependency][job] = {'earliest': earliest_value, 'latest': latest_value}
+                result_dict[dependency][job] = {
+                    'earliest': earliest_value, 'latest': latest_value}
             # print(result_dict[dependency][job])
 
     return result_dict

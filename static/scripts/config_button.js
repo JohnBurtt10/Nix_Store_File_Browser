@@ -14,10 +14,11 @@ function toggleConfigPanel() {
 var recursiveModeEnabled = false;
 
 function saveConfig() {
-    recursiveModeEnabled = document.getElementById('themeToggle').checked;
+    recursiveModeEnabled = document.getElementById('recursiveModeToggle').checked;
+    exponentialBackOffEnabled = document.getElementById('exponentialBackOffToggle').checked;
 
     // You can perform additional actions based on the toggle state here
 
-    alert('Configuration saved successfully!\n\nRecursive Mode: ' + (recursiveModeEnabled ? 'Enabled' : 'Disabled'));
+    alert('Configuration saved successfully!\n\nRecursive Mode: ' + (recursiveModeEnabled ? 'Enabled' : 'Disabled') + '\nExponential Back Off Mode: ' + (exponentialBackOffEnabled ? 'Enabled' : 'Disabled'));
     toggleConfigPanel(); // Close the configuration panel after saving
 }

@@ -10,7 +10,8 @@ function postData() {
         minimum_file_size: $("#minimum_file_size").val(),
         sort_key_2_select: $("#sortKey2Select").val(),
         selected_project: $("#projectSelect").val(),
-        recursive_mode_enabled: $(recursiveModeEnabled)
+        recursive_mode_enabled: $(recursiveModeEnabled),
+        exponential_back_off_enabled: $(exponentialBackOffEnabled)
     };
 
     // Post data to the "/process" endpoint

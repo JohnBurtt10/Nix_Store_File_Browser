@@ -3,16 +3,13 @@ from cache_directories import *
 from datetime import datetime
 from has_timestamp import has_timestamp
 from raw_data_utilities import extract_section
-import utils
 import cache_utils
-import string
 import asyncio
 import concurrent.futures
 from traverse_jobset import traverse_jobset
 from count_descendants import count_descendants
 from calculate_dependency_weight import calculate_dependency_weight
 from process_dependency_group import process_dependency_group
-import sum_dicts
 
 # TODO: break this up into multiple caches
 
@@ -61,23 +58,21 @@ def compute_top_n_information(store_path_entropy_dict,
     }
 
     total_weight, weight_key, nodes, count_file_size, total_file_size = cache_utils.get_cached_or_compute_dependency_weight(
-        project_name, "v2.32.0-20240125033917-0", dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight)
+        project_name, "v2.32.0-20240129033831-0", dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight)
 
-
-    print(f"finished get_cached_or_compute_dependency_weight()")
-
+    # print(f"finished get_cached_or_compute_dependency_weight()")
 
     reverse_dependency_weight_dict = {}
     file_size_reverse_dependency_weight_dict = {}
 
     (reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict) = cache_utils.get_cached_or_compute_reverse_dependency_weight(project_name,
-                                                                                                                                             "v2.32.0-20240125033917-0",
+                                                                                                                                             "v2.32.0-20240129033831-0",
                                                                                                                                              reverse_dependency_weight_cache,
                                                                                                                                              traverse_jobset,
                                                                                                                                              hydra,
                                                                                                                                              count_descendants)
 
-    print(f"finished get_cached_or_compute_reverse_dependency_weight(): {reverse_dependency_weight_dict}")
+    # print(f"finished get_cached_or_compute_reverse_dependency_weight(): {reverse_dependency_weight_dict}")
     # print(f"reverse_dependency_weight_dict: {reverse_dependency_weight_dict}")
     # Combine all dictionaries into a single dictionary with keys from file size dict
     combined_dict = {
@@ -116,6 +111,8 @@ def compute_top_n_information(store_path_entropy_dict,
     top_n_values = sorted(top_n_values, key=lambda x: x[1][sort_mapping.get(
         sort_key2, 0)], reverse=True)
 
+    # print(f"top_n_values: {top_n_values}")
+
     top_n_values_dynamic = []
 
     for iteration, (key, (file_size, entropy, dependency_weight, reverse_dependency_weight)) in enumerate(top_n_values):
@@ -136,9 +133,8 @@ def compute_top_n_information(store_path_entropy_dict,
             "file_size_dependency_weight": f"{count_file_size.get(key, 0)}",
             "reverse_dependency_weight": f"{reverse_dependency_weight}",
             "file_size_reverse_dependency_weight": f"{file_size_reverse_dependency_weight_dict.get(key, 0)}",
-            # "file_size_dependency_weight": f"{dependent_nodes_file_size/total_nodes_file_size}",
             "reverse_dependencies": reverse_dependencies_dict[key],
-            "last_instance_hash": dependency_store_path_dict[key],
+            "last_instance_hash": dependency_store_path_dict.get(key, ""),
             "store_paths": dependency_all_store_path_dict[key],
             "store_path_jobsets": store_path_jobsets_dict[key],
         }
@@ -152,7 +148,7 @@ def compute_top_n_information(store_path_entropy_dict,
 def get_children(hydra, hash):
 
     raw_data = cache_utils.get_cached_or_fetch_nar_info(
-        hydra, nar_info_cache, hash)
+        hydra, nar_info_cache, hash, False)
     references = extract_section(raw_data=raw_data, keyword="References")
     return references
 
@@ -209,8 +205,8 @@ def overlap_and_disjoint(set1, set2):
     return overlap_set, disjoint_set
 
 
-def combine(project_name, hydra, list1, list2, jobsets=["v2.32.0-20240125033917-0"
-]):
+def combine(project_name, hydra, list1, list2, jobsets=["v2.32.0-20240129033831-0"
+                                                        ]):
 
     # Combine the lists based on the top 100 items
     combined_list = []
@@ -261,174 +257,7 @@ def temp(project_name, hydra, jobset):
         project_name, jobset, dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight)
     return total_weight, total_nodes
 
-# notes:
-    # - FileSize equals NarSize in the narinfo and the numbers seem suspicious?
-    # - packages with two of the same dependency with different hashes? --> throw out
-
 # BUG: I think that when there is a new jobset at least the reverse dependencies gets messed up bc of update_dicts_cache
-
-
-def mike(project_name: string, hydra: Hydra, recursive_mode_enabled: bool):
-    # store_path_hash_dict[x][y] where y is the hash of a direct dependency of x
-    store_path_hash_dict = {}
-
-    # store_path_entropy_dict[x] is incremented when the hash for x changes
-    store_path_entropy_dict = {}
-
-    # store_path_file_size_dict[x] is the file size of a store path of a build
-    store_path_file_size_dict = {}
-
-    # every item in reverse_dependencies_dict[x] reverse DIRECTLY depends on x
-    reverse_dependencies_dict = {}
-
-    # dependency_store_path_dict[x] is the last instance of a store path for a dependency x
-    dependency_store_path_dict = {}
-
-    # all store paths for x
-    dependency_all_store_path_dict = {}
-
-    # all jobsets containing x
-    store_path_jobsets_dict = {}
-
-    missed_hash = False
-
-    # Initialize variables to store the result
-    remaining_jobsets = []
-
-    print(
-        f"Generating a list of the 100 largest store paths sorted by entropy in project: {project_name}, recursive_mode_enabled: {recursive_mode_enabled}")
-
-    # ['v2.32.0-20240102033847-0', 'v2.32.0-20240102144952-0', 'v2.32.0-20240102154952-0',...
-    jobsets = hydra.get_jobsets(project=project_name)
-
-    total_jobsets = len(jobsets)
-    bar_length = 20
-
-    # Assuming jobsets is a list of strings containing timestamps
-    sorted_jobsets = sorted(jobsets, key=lambda x: datetime.strptime(
-        x.split('-')[1], '%Y%m%d%H%M%S'))
-    earliest_jobset = sorted_jobsets[0]
-
-    if sorted_jobsets in update_dicts_cache:
-        # cache hit;
-        # pass
-        return update_dicts_cache[sorted_jobsets]
-
-    # if jobsets in update_dicts_cache:
-    #     # cache hit;
-    #     # pass
-    #     return update_dicts_cache[jobsets]
-
-    # Iterate in reverse order
-    for n in range(len(sorted_jobsets), 0, -1):
-        prefix = sorted_jobsets[:n]
-        matching_sublist = next(
-            (lst for lst in update_dicts_cache if prefix == lst[:len(prefix)]), None)
-        if matching_sublist is not None:
-            result_n = n
-            remaining_jobsets = sorted_jobsets[result_n:]
-            break
-
-    # print("The highest value of n is:", result_n)
-    # print("Remaining elements:", remaining_jobsets)
-    # print("Matching sublist in my_second_list:", matching_sublist)
-
-    if (matching_sublist is not None) and matching_sublist in update_dicts_cache:
-        return update_dicts_cache[matching_sublist]
-
-        # partial cache hit!
-        (store_path_entropy_dict,
-            store_path_file_size_dict,
-            reverse_dependencies_dict,
-            dependency_store_path_dict,
-            dependency_all_store_path_dict,
-            store_path_jobsets_dict,
-            earliest_jobset,
-            jobsets) = update_dicts_cache[matching_sublist]
-
-    else:
-        remaining_jobsets = sorted_jobsets
-
-    # remaining_jobsets = jobsets
-
-    for idx, jobset in enumerate(remaining_jobsets):
-        utils.print_progress_update(idx, total_jobsets, bar_length)
-        # _dependency_store_path_dict = {}
-        # _store_path_hash_dict = {}
-        # _store_path_entropy_dict = {}
-        # _store_path_file_size_dict = {}
-        # _reverse_dependencies_dict = {}
-        # _dependency_all_store_path_dict = {}
-        # _store_path_jobsets_dict = {}
-        # traverse_jobset(hydra, project_name, jobset,
-        #                 lambda job, raw_data: process_dependency_group(
-        #                     hydra,
-        #                     recursive_mode_enabled,
-        #                     raw_data,
-        #                     _dependency_store_path_dict,
-        #                     job,
-        #                     jobset,
-        #                     _store_path_hash_dict,
-        #                     _store_path_entropy_dict,
-        #                     _store_path_file_size_dict,
-        #                     _reverse_dependencies_dict,
-        #                     _dependency_all_store_path_dict,
-        #                     _store_path_jobsets_dict))
-        # _dependency_store_path_dict = {}
-        # _store_path_hash_dict = {}
-        # _store_path_entropy_dict = {}
-        # _store_path_file_size_dict = {}
-        # _reverse_dependencies_dict = {}
-        # _dependency_all_store_path_dict = {}
-        # _store_path_jobsets_dict = {}
-        traverse_jobset(hydra, project_name, jobset,
-                        lambda job, raw_data: process_dependency_group(
-                            hydra,
-                            recursive_mode_enabled,
-                            raw_data,
-                            dependency_store_path_dict,
-                            job,
-                            jobset,
-                            store_path_hash_dict,
-                            store_path_entropy_dict,
-                            store_path_file_size_dict,
-                            reverse_dependencies_dict,
-                            dependency_all_store_path_dict,
-                            store_path_jobsets_dict))
-        
-        
-
-        # TODO: ??
-        latest_jobset = sorted_jobsets[-1]
-
-    # populate cache
-    # if not missed_hash:
-    update_dicts_cache[sorted_jobsets] = (store_path_entropy_dict,
-                                          store_path_file_size_dict,
-                                          reverse_dependencies_dict,
-                                          dependency_store_path_dict,
-                                          dependency_all_store_path_dict,
-                                          store_path_jobsets_dict,
-                                          earliest_jobset,
-                                          latest_jobset)
-
-    # update_dicts_cache[jobsets] = (store_path_entropy_dict,
-    #                                     store_path_file_size_dict,
-    #                                     reverse_dependencies_dict,
-    #                                     dependency_store_path_dict,
-    #                                     dependency_all_store_path_dict,
-    #                                     store_path_jobsets_dict,
-    #                                     earliest_jobset,
-    #                                     latest_jobset)
-
-    return (store_path_entropy_dict,
-            store_path_file_size_dict,
-            reverse_dependencies_dict,
-            dependency_store_path_dict,
-            dependency_all_store_path_dict,
-            store_path_jobsets_dict,
-            earliest_jobset,
-            jobsets)
 
 
 def main():
@@ -442,8 +271,6 @@ def main():
 
     # Example: Pushing a jobset
     project_name = "v2-32-devel"
-
-    print(f"{mike(project_name, hydra)}")
 
 
 if __name__ == "__main__":

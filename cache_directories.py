@@ -11,6 +11,7 @@ build_info_cache_directory = "cache/build_info_cache_directory"
 nar_info_cache_directory = "cache/nar_info_cache_directory"
 count_ancestor_cache_directory = "cache/count_ancestor_cache_directory"
 dependency_weight_cache_directory = "cache/dependency_weight_cache_directory"
+dependency_all_store_path_dict_cache_directory = "cache/dependency_all_store_path_dict_cache_directory"
 #TODO: name?
 update_dicts_cache_directory = "cache/update_dicts_cache_directory"
 compare_and_process_builds_cache_directory = "cache/compare_and_process_builds_cache_directory"
@@ -21,7 +22,13 @@ compare_and_group_references_cache_directory = "cache/compare_and_group_referenc
 handle_compare_and_group_references_cache_directory = "cache/handle_compare_and_group_references_cache_directory"
 count_descentdants_cache_directory = "cache/count_descentdants_cache_directory"
 reverse_dependency_weight_cache_directory = "cache/reverse_dependency_weight_cache_directory"
-_calculate_dependency_weight_cache_directory = "cache/_calculate_dependency_weight_cache/directory"
+_calculate_dependency_weight_cache_directory = "cache/_calculate_dependency_weight_cache_directory"
+store_path_jobsets_dict_cache_directory = "cache/store_path_jobsets_dict_cache_directory"
+store_path_entropy_dict_cache_directory = "cache/store_path_entropy_dict_cache_directory"
+store_path_file_size_dict_cache_directory = "cache/store_path_file_size_dict_cache_directory"
+dependency_store_path_dict_cache_directory = "cache/dependency_store_path_dict_cache_directory"
+group_items_cache_directory = "cache/group_items_cache_directory"
+reverse_dependencies_dict_cache_directory = "cache/reverse_dependencies_dict_cache_directory"
 cache = Cache(my_cache_directory)
 dependency_weight_cache = Cache(dependency_weight_cache_directory)
 first_sort_cache = Cache(first_sort_cache_directory)
@@ -44,26 +51,16 @@ handle_compare_and_group_references_cache = Cache(handle_compare_and_group_refer
 count_descentdants_cache = Cache(count_descentdants_cache_directory)
 reverse_dependency_weight_cache = Cache(reverse_dependency_weight_cache_directory)
 _calculate_dependency_weight_cache = Cache(_calculate_dependency_weight_cache_directory)
+store_path_jobsets_dict_cache = Cache(store_path_jobsets_dict_cache_directory)
+dependency_all_store_path_dict_cache = Cache(dependency_all_store_path_dict_cache_directory)
+store_path_entropy_dict_cache = Cache(store_path_entropy_dict_cache_directory)
+store_path_file_size_dict_cache = Cache(store_path_file_size_dict_cache_directory)
+dependency_store_path_dict_cache = Cache(dependency_store_path_dict_cache_directory)
+group_items_cache = Cache(group_items_cache_directory)
+reverse_dependencies_dict_cache = Cache(reverse_dependencies_dict_cache_directory)
 
 # Define __all__ to include all names
 __all__ = [
-    "my_cache_directory",
-    "my_out_path_cache_directory",
-    "job_cache_directory",
-    "jobset_cache_directory",
-    "builds_cache_directory",
-    "evals_info_cache_directory",
-    "first_sort_cache_directory",
-    "jobset_evals_cache_directory",
-    "build_info_cache_directory",
-    "nar_info_cache_directory",
-    "count_ancestor_cache_directory",
-    "dependency_weight_cache_directory",
-    "update_dicts_cache_directory",
-    "compare_and_process_builds_cache_directory",
-    "compare_and_group_job_cache_directory",
-    "process_and_compare_paths_cache_directory",
-    "get_job_references_dict_cache_directory",
     "cache",
     "dependency_weight_cache",
     "first_sort_cache",
@@ -85,5 +82,12 @@ __all__ = [
     "handle_compare_and_group_references_cache",
     "count_descentdants_cache", 
     "reverse_dependency_weight_cache",
-    "_calculate_dependency_weight_cache"
+    "_calculate_dependency_weight_cache",
+    "store_path_jobsets_dict_cache",
+    "dependency_all_store_path_dict_cache",
+    "store_path_entropy_dict_cache",
+    "store_path_file_size_dict_cache",
+    "dependency_store_path_dict_cache",
+    "group_items_cache",
+    "reverse_dependencies_dict_cache"
 ]

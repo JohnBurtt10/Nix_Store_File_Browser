@@ -51,36 +51,6 @@ def _calculate_dependency_weight(hydra,
     _calculate_dependency_weight_cache[tuple_key] = total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size
     return total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size
 
-
-# def calculate_dependency_weight(hydra,
-#                                 raw_data,
-#                                 total_weight,
-#                                 total_weight_key,
-#                                 total_nodes,
-#                                 total_total_file_size,
-#                                 total_count_file_size,
-#                                 run_async=False):
-
-#     (total_weight,
-#      total_weight_key,
-#      total_nodes,
-#      total_count_file_size,
-#      total_total_file_size) = _calculate_dependency_weight(hydra,
-#                                                            raw_data,
-#                                                            total_weight,
-#                                                            total_weight_key,
-#                                                            total_nodes,
-#                                                            total_total_file_size,
-#                                                            total_count_file_size,
-#                                                            run_async=False)
-#     pdb.set_trace()  # Set a breakpoint
-#     print(f"calculate_dependency_weight here: {total_weight}")
-
-#     total_weight['john'] = 5
-
-#     return total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size
-
-
 def calculate_dependency_weight(hydra, project_name, jobset, total_weight, total_weight_key, total_nodes, total_total_file_size, total_count_file_size):
     
     data = cache_utils.get_cached_or_fetch_jobset_evals(hydra, jobset_evals_cache, project_name, jobset)
@@ -106,7 +76,7 @@ def calculate_dependency_weight(hydra, project_name, jobset, total_weight, total
             # Extracting the hash and the stuff after the first hyphen
             hash_value = parts[0]
             try:
-                raw_data = cache_utils.get_cached_or_fetch_nar_info(hydra, nar_info_cache, hash_value)
+                raw_data = cache_utils.get_cached_or_fetch_nar_info(hydra, nar_info_cache, hash_value, False)
                 (total_weight,
                 total_weight_key,
                 total_nodes,
@@ -119,11 +89,8 @@ def calculate_dependency_weight(hydra, project_name, jobset, total_weight, total
                                                            total_total_file_size,
                                                            total_count_file_size,
                                                            run_async=False)
-                # return total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size
             except HydraResponseException as e:
                 print(f"missed hash ({hash_value})")
-            # except Exception as e:
-            #     print(f"failed to retrieve direct dependencies of build: {build} with error: {e}")
 
 
     return total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size

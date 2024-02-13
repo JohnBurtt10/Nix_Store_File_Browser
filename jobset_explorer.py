@@ -30,7 +30,7 @@ def get_references_from_store_path(hydra, store_path):
     # Extracting the hash and the stuff after the first hyphen
     hash_value = parts[0]
     raw_data = cache_utils.get_cached_or_fetch_nar_info(
-        hydra, nar_info_cache, hash_value)
+        hydra, nar_info_cache, hash_value, False)
     references = extract_section(raw_data=raw_data, keyword="References")
     if store_path in references:
         references.remove(store_path)
@@ -74,7 +74,7 @@ def store_path_get_file_size(hydra, store_path):
     # Extracting the hash and the stuff after the first hyphen
     hash_value = parts[0]
     raw_data = cache_utils.get_cached_or_fetch_nar_info(
-        hydra, nar_info_cache, hash_value)
+        hydra, nar_info_cache, hash_value, False)
     file_size = extract_section(raw_data=raw_data, keyword="FileSize")
     # TODO: ?
     return int(file_size[0])
@@ -190,7 +190,7 @@ def get_references_from_build_info(hydra, build_info):
 
         # Separate awaits for each coroutine call
         raw_data = cache_utils.get_cached_or_fetch_nar_info(
-            hydra, nar_info_cache, hash_value)
+            hydra, nar_info_cache, hash_value, False)
         try:
             references = extract_section(
                 raw_data=raw_data, keyword="References")

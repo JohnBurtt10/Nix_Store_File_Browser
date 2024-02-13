@@ -5,6 +5,12 @@ from extract_earliest_latest_values import extract_earliest_latest_values
 import json
 import jobset_explorer
 import os
+import cache_utils
+from traverse_jobset import traverse_jobset
+from cache_directories import *
+from sum_2d_dicts import sum_2d_dicts_of_lists
+from sum_dicts import sum_dicts_of_lists, sum_dicts
+from merge_dicts_with_preference import merge_2d_dicts_with_preference, merge_dicts_with_preference
 
 # TODO:
 # - Clear caches button
@@ -32,22 +38,45 @@ def process():
     minimum_entropy = int(request.form.get('minimum_entropy', ''))
     minimum_file_size = int(request.form.get('minimum_file_size', ''))
     recursive_mode_enabled = request.form.get('recursive_mode_enabled', False)
+    exponential_back_off_enabled = request.form.get('exponential_back_off_enabled', False)
     print(f"selected_project: {selected_project}")
     projects = hydra.get_projects()
     jobsets = hydra.get_jobsets(project=selected_project)
     sort_keys = {'dependency_weight', 'entropy',
                  'file_size', 'reverse_dependency_weight'}
-    (store_path_entropy_dict,
-    store_path_file_size_dict,
-    reverse_dependencies_dict,
-    dependency_store_path_dict,
-    dependency_all_store_path_dict,
-    # TODO: change how this info is passed maybe?
-    store_path_jobsets_dict,
-    earliest_jobset,
-    latest_jobset) = dependency_analyzer.mike(project_name=selected_project, hydra=hydra, recursive_mode_enabled=recursive_mode_enabled)
-    print(f"finished mike()")
 
+    # store_path_jobsets_dict = cache_utils.general_cache_function(
+    #     hydra, selected_project, traverse_jobset, store_path_jobsets_dict_cache, cache_utils.update_store_path_jobsets_dict, recursive_mode_enabled, sum_2d_dicts_of_lists)[0]
+    # dependency_all_store_path_dict = cache_utils.general_cache_function(
+    #     hydra, selected_project, traverse_jobset, dependency_all_store_path_dict_cache, cache_utils.update_dependency_all_store_path_dict, recursive_mode_enabled, sum_dicts_of_lists)[0]
+    # store_path_file_size_dict = cache_utils.general_cache_function(
+    #     hydra, selected_project, traverse_jobset, store_path_file_size_dict_cache, cache_utils.update_store_path_file_size_dict, recursive_mode_enabled, merge_dicts_with_preference)[0]
+    # dependency_store_path_dict = cache_utils.general_cache_function(
+    #     hydra, selected_project, traverse_jobset, dependency_store_path_dict_cache, cache_utils.update_dependency_store_path_dict, recursive_mode_enabled, merge_2d_dicts_with_preference)[0]
+    # reverse_dependencies_dict = cache_utils.general_cache_function(
+    #     hydra, selected_project, traverse_jobset, reverse_dependencies_dict_cache, cache_utils.update_reverse_dependencies_dict, recursive_mode_enabled, sum_2d_dicts_of_lists)[0]
+
+
+    cache_functions = [
+    (store_path_jobsets_dict_cache, cache_utils.update_store_path_jobsets_dict, sum_2d_dicts_of_lists),
+    (dependency_all_store_path_dict_cache, cache_utils.update_dependency_all_store_path_dict, sum_dicts_of_lists),
+    (store_path_file_size_dict_cache, cache_utils.update_store_path_file_size_dict, merge_dicts_with_preference),
+    (dependency_store_path_dict_cache, cache_utils.update_dependency_store_path_dict, merge_2d_dicts_with_preference),
+    (reverse_dependencies_dict_cache, cache_utils.update_reverse_dependencies_dict, sum_2d_dicts_of_lists),
+]
+
+    results = []
+
+    for cache, update_function, merge_function in cache_functions:
+        result = cache_utils.general_cache_function(hydra, selected_project, traverse_jobset, cache, update_function, recursive_mode_enabled, exponential_back_off_enabled, merge_function)[0]
+        results.append(result)
+
+    store_path_jobsets_dict, dependency_all_store_path_dict, store_path_file_size_dict, dependency_store_path_dict, reverse_dependencies_dict = results
+
+    latest_jobset = "v2.32.0-20240126033851-0"
+
+    store_path_entropy_dict = cache_utils.get_cached_or_fetch_store_path_entropy_dict(
+        hydra, selected_project, traverse_jobset, recursive_mode_enabled, exponential_back_off_enabled, store_path_entropy_dict_cache)
     earliest_latest_values_dict = extract_earliest_latest_values(
         input_dict=reverse_dependencies_dict)
 
@@ -69,8 +98,6 @@ def process():
                                                                  minimum_file_size=minimum_file_size,
                                                                  print_dependency_weight=False)
 
-    # print(f"top n: {top_n_values}")
-
     return render_template('index.html',
                            projects=projects,
                            sort_keys=sort_keys,
@@ -81,7 +108,7 @@ def process():
                            selected_sort_key_1=selected_sort_key_1,
                            selected_sort_key_2=selected_sort_key_2,
                            selected_project=selected_project,
-                           earliest_jobset=earliest_jobset,
+                           #    earliest_jobset=earliest_jobset,
                            latest_jobset=latest_jobset,
                            jobsets=jobsets)
 
@@ -220,10 +247,8 @@ def index():
     hydra.login(username="administrator", password="clearp@th")
 
     projects = hydra.get_projects()
-    
-    # template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'index.html')
 
-    return render_template(index.html, projects=projects,
+    return render_template("index.html", projects=projects,
                            sort_keys={'dependency_weight',
                                       'entropy', 'file_size', 'reverse_dependency_weight'},
                            top_n_values='',

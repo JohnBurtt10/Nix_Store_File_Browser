@@ -2,13 +2,15 @@
 
 import subprocess
 
+
 def run_nix_build(package_expression):
     try:
         # Construct the Nix build command
         nix_build_command = ["nix", "build", package_expression]
 
         # Run the command and capture the output
-        result = subprocess.run(nix_build_command, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            nix_build_command, check=True, capture_output=True, text=True)
 
         # Print the result (optional)
         print("Nix Build Output:")

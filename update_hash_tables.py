@@ -96,3 +96,32 @@ def update_dependency_all_store_path_dict(dependency, dependency_all_store_path_
         dependency_all_store_path_dict[dependency] = list(set(dependency_all_store_path_dict[dependency]) | set(group))
     else:
         dependency_all_store_path_dict[dependency] = group
+        
+def update_reverse_dependencies_dict(dependency, reverse_dependencies_dict, jobset, job):
+    # TODO: change this so that it also has the versions of the job
+    if dependency in reverse_dependencies_dict:
+        if job in reverse_dependencies_dict[dependency]:
+            reverse_dependencies_dict[dependency][job].append(jobset)
+        else:
+            reverse_dependencies_dict[dependency][job] = [jobset]
+
+    else:
+        reverse_dependencies_dict[dependency] = {}
+        reverse_dependencies_dict[dependency][job] = [jobset]
+        
+def update_store_path_hash_dict(job, store_path_hash_dict, dependency, group, store_path_entropy_dict):
+    if job in store_path_hash_dict:
+        if dependency in store_path_hash_dict[job]:
+            if store_path_hash_dict[job][dependency] != group:
+                #TODO: untested
+                if dependency not in store_path_entropy_dict:
+                    store_path_entropy_dict[dependency] = 0
+                else:
+                    store_path_entropy_dict[dependency] = store_path_entropy_dict[dependency] + 1                
+                store_path_hash_dict[job][dependency] = group
+        else:
+            # init dicts
+            store_path_hash_dict[job][dependency] = group
+    else: 
+        store_path_hash_dict[job] = {}
+        store_path_hash_dict[job][dependency] = group
