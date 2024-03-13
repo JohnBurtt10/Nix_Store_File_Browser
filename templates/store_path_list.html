@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='style/style.css') }}">
+<!-- deleted style thing here -->
 <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
 
 <ul>
@@ -27,8 +27,8 @@
             <span>
                 <span class="caret" data-path="{{ details.last_instance_hash }}-{{ path }}"
                     data-custom-value="{{ details.last_instance_hash }}"
-                    data-store-path-jobsets="{{ details.store_path_jobsets }}"
-                    data-jobset="{{ details.latest_jobset }}" onclick="fetchAndExpand(this)">
+                    data-store-path-jobsets="{{ details.store_path_jobsets }}" data-jobset="{{ details.latest_jobset }}"
+                    onclick="fetchAndExpand(this)">
                     {{ details.last_instance_hash }}-{{ path }}
                 </span>
                 <button onclick="replaceText(this.parentElement)">Compare</button>

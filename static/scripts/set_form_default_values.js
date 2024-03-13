@@ -12,12 +12,12 @@ document.addEventListener('DOMContentLoaded', function () {
     
     var selectElement2 = document.getElementById("sortKey2Select");
     
-    for (var i = 0; i < selectElement2.options.length; i++) {
-        if (selectElement2.options[i].value === defaultSelectedValue2) {
-            selectElement2.options[i].selected = true;
-            break;
-        }
-    }
+    // for (var i = 0; i < selectElement2.options.length; i++) {
+    //     if (selectElement2.options[i].value === defaultSelectedValue2) {
+    //         selectElement2.options[i].selected = true;
+    //         break;
+    //     }
+    // }
     
     // project 
     
@@ -38,16 +38,16 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // minimum entropy
     
-    var minimumEntropyInput = document.getElementById("minimum_entropy");
+    // var minimumEntropyInput = document.getElementById("minimum_entropy");
     
-    console.log('defaultMinimumEntropyValue: ', defaultMinimumEntropyValue);
+    // console.log('defaultMinimumEntropyValue: ', defaultMinimumEntropyValue);
 
-    minimumEntropyInput.value = defaultMinimumEntropyValue;
+    // minimumEntropyInput.value = defaultMinimumEntropyValue;
     
-    // minimum file size
+    // // minimum file size
     
-    var minimumFileSizeInput = document.getElementById("minimum_file_size");
+    // var minimumFileSizeInput = document.getElementById("minimum_file_size");
     
-    minimumFileSizeInput.value = defaultMinimumFileSizeValue;
+    // minimumFileSizeInput.value = defaultMinimumFileSizeValue;
 });
 

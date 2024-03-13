@@ -8,6 +8,9 @@ from group_items import group_items
 import random
 import time
 from hydra_client import Hydra
+from get_sorted_jobsets import get_sorted_jobsets
+from tqdm import tqdm
+from get_best_partial_jobsets_cache_key import get_best_partial_jobsets_cache_key
 
 # Exponential backoff parameters
 max_retries = 2
@@ -30,7 +33,7 @@ def get_cached_or_fetch_nar_info(hydra, cache, hash, exponential_back_off_enable
             # If the function succeeds, break out of the loop
             break
         except HydraResponseException as e:
-            
+
             if not exponential_back_off_enabled:
                 print("Retrying is disabled. Exiting.")
                 break
@@ -56,16 +59,46 @@ def get_cached_or_fetch_nar_info(hydra, cache, hash, exponential_back_off_enable
 
 def get_cached_or_fetch_jobset_evals(hydra, cache, project_name, jobset_name):
     # ???
-    if (project_name, jobset_name) in cache:
+    if False and (project_name, jobset_name) in cache:
         return cache[(project_name, jobset_name)]
     data = hydra.get_jobset_evals(
         project=project_name, jobset_name=jobset_name)
+    retries = 0
+
+    # while retries <= max_retries:
+    #     try:
+    #         # If hash is not in the cache, fetch the data
+    #         data = hydra.get_jobset_evals(project=project_name, jobset_name=jobset_name)
+    #         (data.get('evals', []))[0]
+    #         # If the function succeeds, break out of the loop
+    #         break
+    #     except IndexError as e:
+
+    #         if False:
+    #             print("Retrying is disabled. Exiting.")
+    #             break
+    #         print(f"Attempt {retries + 1} failed: {e}")
+
+    #         # Calculate the next delay using exponential backoff
+    #         delay = base_delay * (2 ** retries)
+
+    #         # Add some jitter to the delay to prevent synchronized retries
+    #         jitter = random.uniform(0, 1)
+    #         delay += jitter
+
+    #         print(f"Retrying in {delay:.2f} seconds...")
+    #         time.sleep(delay)
+
+    #         retries += 1
+
+    # if retries > max_retries:
+    #     print(f"Max retries reached. Exiting.")
     cache[(project_name, jobset_name)] = data
     return data
 
 
 def get_cached_or_fetch_build_info(hydra, cache, build):
-    if build in cache:
+    if False and build in cache:
         return cache[build]
     build_info = hydra.get_build_info(build)
     cache[build] = build_info
@@ -105,7 +138,7 @@ async def async_get_cached_or_fetch_build_info(hydra, cache, build):
 
 
 async def async_get_cached_or_fetch_jobset_evals(hydra, cache, project_name, jobset_name):
-    if (project_name, jobset_name) in cache:
+    if False and (project_name, jobset_name) in cache:
         print(f"get_cached_or_fetch_jobset_evals cache hit!")
         return cache[(project_name, jobset_name)]
 
@@ -118,7 +151,7 @@ async def async_get_cached_or_fetch_jobset_evals(hydra, cache, project_name, job
 
 
 def get_cached_or_fetch_out_path(build_info, out_path_cache):
-    if build_info in out_path_cache:
+    if False and build_info in out_path_cache:
         out_path = out_path_cache[build_info]
     else:
         out_path = build_info.get('outPath', [])
@@ -127,7 +160,7 @@ def get_cached_or_fetch_out_path(build_info, out_path_cache):
 
 
 def get_cached_or_fetch_job(build_info, job_cache):
-    if build_info in job_cache:
+    if False and build_info in job_cache:
         job = job_cache[build_info]
     else:
         job = build_info.get('job', [])
@@ -136,7 +169,7 @@ def get_cached_or_fetch_job(build_info, job_cache):
 
 
 def get_cached_or_fetch_jobset(build_info, jobset_cache):
-    if build_info in jobset_cache:
+    if False and build_info in jobset_cache:
         jobset = jobset_cache[build_info]
     else:
         jobset = build_info.get('jobset', [])
@@ -145,7 +178,7 @@ def get_cached_or_fetch_jobset(build_info, jobset_cache):
 
 
 def get_cached_or_fetch_builds(eval_info, builds_cache):
-    if eval_info in builds_cache:
+    if False and eval_info in builds_cache:
         builds = builds_cache[eval_info]
     else:
         builds = eval_info.get('builds', [])
@@ -154,7 +187,7 @@ def get_cached_or_fetch_builds(eval_info, builds_cache):
 
 
 def get_cached_or_fetch_evals_info(data, evals_info_cache):
-    if data in evals_info_cache:
+    if False and data in evals_info_cache:
         evals_info = evals_info_cache[data]
     else:
         evals_info = data.get('evals', [])
@@ -176,7 +209,7 @@ def get_cached_or_compute_reverse_dependency_weight(project_name, jobset, revers
                         lambda job, raw_data: count_descendants(hydra,
                                                                 raw_data,
                                                                 reverse_dependency_weight_dict,
-                                                                file_size_reverse_dependency_weight_dict))
+                                                                file_size_reverse_dependency_weight_dict), recursive_mode_enabled=False, only_visit_once_enabled=False, progress_bar_enabled=True, progress_bar_desc="Computing reverse dependency weights")
 
         print(
             f"reverse_dependency_weight_dict: {reverse_dependency_weight_dict}")
@@ -186,17 +219,7 @@ def get_cached_or_compute_reverse_dependency_weight(project_name, jobset, revers
     return (reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict)
 
 
-def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight):
-
-    total_weight = {}
-
-    total_weight_key = {}
-
-    total_nodes = 0
-
-    total_total_file_size = 0
-
-    total_count_file_size = {}
+def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_weight_cache, hydra, calculate_dependency_weight):
 
     if jobset in dependency_weight_cache:
         print(f"hit cache with: {jobset}")
@@ -206,54 +229,120 @@ def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_wei
     else:
 
         total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size = calculate_dependency_weight(
-            hydra, project_name, jobset, total_weight, total_weight_key, total_nodes, total_total_file_size, total_count_file_size)
+            hydra, project_name, jobset)
 
         dependency_weight_cache[jobset] = (
             total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size)
 
-    return total_weight, total_weight_key, total_nodes, total_count_file_size, total_total_file_size
+    return calculate_dependency_weight(hydra, project_name, jobset)
 
 
-def general_cache_function(hydra, project_name, traverse_jobset, cache, update_func, recursive_mode_enabled, exponential_back_off_enabled, *args):
+# OLD CACHING SCHEME
+
+# def general_cache_function(hydra, project_name, traverse_jobset, cache, update_func, recursive_mode_enabled, exponential_back_off_enabled, *args):
+
+#     result_dicts = [{} for _ in args]
+
+#     sorted_jobsets = get_sorted_jobsets(hydra, project_name)
+
+#     # (remaining_jobsets, cache_value) = partial_jobsets_cache(sorted_jobsets, cache)
+
+#     # # remaining_jobsets = jobsets
+
+#     # # cache_value = None
+
+#     # if cache_value is not None:
+#     #     result_dicts = cache_value
+
+#     # # TODO: check for complete cache hit?
+
+#     # # Use tqdm to create a progress bar
+#     # with tqdm(total=len(sorted_jobsets), desc="Calculating [???]", unit="%") as pbar:
+#     partial_jobset_lists = list(cache.iterkeys())
+
+#     (best_list, remaining_jobsets) = get_best_partial_jobsets_cache_key(
+#         sorted_jobsets, partial_jobset_lists)
+
+#     if best_list is not None:
+#         partial_cache_key = tuple(best_list)
+
+#         if partial_cache_key in cache:
+#             result_dicts = cache[partial_cache_key]
+
+#     with tqdm(initial=0 if best_list is None else len(best_list), total=len(sorted_jobsets), desc="Computing [??]", unit="jobsets") as pbar:
+#         for jobset in remaining_jobsets:
+#             #TODO: replace this with the cropped jobset list
+#             cache_key = tuple([jobset])
+#             if cache_key in cache:
+#                 print(f"cache: {cache}, jobset: {jobset} cache hit!")
+#                 # cache hit!
+#                 _result_dicts = cache[cache_key]
+#             else:
+#                 print(f"cache: {cache}, jobset: {jobset} cache miss!")
+#                 _result_dicts = [{} for _ in args]
+#                 traverse_jobset(hydra, project_name, jobset,
+#                                 lambda job, raw_data: update_func(
+#                                     raw_data, _result_dicts, jobset, job), recursive_mode_enabled, exponential_back_off_enabled)
+#                 cache[cache_key] = _result_dicts
+
+#             # TODO: ???
+
+#             # Using enumerate to iterate through the list with index
+#             for index, value in enumerate(args):
+#                 result_dicts[index] = value(
+#                     result_dicts[index], _result_dicts[index])
+#             pbar.update(1)
+
+#     cache_key = tuple(sorted_jobsets)
+#     cache[cache_key] = result_dicts
+#     return result_dicts
+
+def general_cache_function(hydra, update_progress, project_name, traverse_jobset, cache, update_func, recursive_mode_enabled, exponential_back_off_enabled, progress_bar_enabled=True, whitelist_enabled=False, progress_bar_desc="Default progress bar desc", jobsets=None, *args):
 
     result_dicts = [{} for _ in args]
 
-    jobsets = hydra.get_jobsets(project_name)
 
-    (remaining_jobsets, cache_value) = partial_jobsets_cache(jobsets, cache)
+    if jobsets:
+        sorted_jobsets = jobsets
+    else:
+        sorted_jobsets = get_sorted_jobsets(hydra, project_name)
 
-    # remaining_jobsets = jobsets
+    processed_jobsets = []
 
-    # cache_value = None
+    visited = []
 
-    if cache_value is not None:
-        result_dicts = cache_value
+    partial_jobset_lists = list(cache.iterkeys())
 
-    # TODO: check for complete cache hit?
+    (best_list, remaining_jobsets) = get_best_partial_jobsets_cache_key(
+        sorted_jobsets, partial_jobset_lists)
+    
+    if best_list is not None:
+        processed_jobsets = list(best_list)
+        partial_cache_key = tuple(best_list)
 
-    for jobset in remaining_jobsets:
-        cache_key = tuple([jobset])
-        if cache_key in cache:
-            print(f"cache: {cache}, jobset: {jobset} cache hit!")
-            # cache hit!
-            _result_dicts = cache[cache_key]
-        else:
-            print(f"cache: {cache}, jobset: {jobset} cache miss!")
+        if partial_cache_key in cache:
+            (result_dicts, visited) = cache[partial_cache_key]
+
+            # return result_dicts
+            # result_dicts = cache[partial_cache_key]
+    with tqdm(initial=0 if best_list is None else len(best_list), disable=not progress_bar_enabled, total=len(sorted_jobsets), desc=progress_bar_desc, unit="jobsets") as pbar:
+        update_progress(progress_bar_desc+"...", 100*pbar.n/len(sorted_jobsets))
+        for jobset in remaining_jobsets:
             _result_dicts = [{} for _ in args]
-            traverse_jobset(hydra, project_name, jobset,
+            traverse_jobset(hydra, update_progress, project_name, jobset,
                             lambda job, raw_data: update_func(
-                                raw_data, _result_dicts, jobset, job), recursive_mode_enabled, exponential_back_off_enabled)
-            cache[cache_key] = _result_dicts
+                                raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited=visited)
+            processed_jobsets.append(jobset)
 
-        # TODO: ???
+            # Using enumerate to iterate through the list with index
+            for index, value in enumerate(args):
+                result_dicts[index] = value(
+                    result_dicts[index], _result_dicts[index])
+            cache_key = tuple(processed_jobsets)
+            cache[cache_key] = (result_dicts, visited)
+            pbar.update(1)
+            update_progress(progress_bar_desc+"...", 100*pbar.n/len(sorted_jobsets))
 
-        # Using enumerate to iterate through the list with index
-        for index, value in enumerate(args):
-            result_dicts[index] = value(
-                result_dicts[index], _result_dicts[index])
-
-    cache_key = tuple(jobsets)
-    cache[cache_key] = result_dicts
     return result_dicts
 
 
@@ -288,37 +377,16 @@ def update_store_path_jobsets_dict(raw_data, dicts, jobset, job):
                     store_path_jobsets_dict[dependency][store_path] = [jobset]
 
 
+def get_basic_entropy(dependency_all_store_path_dict):
+    basic_entropy_dict = {}
+    for key in dependency_all_store_path_dict:
+        entropy = len(dependency_all_store_path_dict[key]) - 1
+        if entropy > 0:
+            basic_entropy_dict[key] = len(dependency_all_store_path_dict[key])
+    return basic_entropy_dict
+
+
 # dependency_all_store_path_dict
-
-def partial_jobsets_cache(jobsets, cache):
-    cache_value = None
-    result_n = 0
-    remaining_jobsets = []
-    matching_sublist = None
-    for n in range(len(jobsets), 0, -1):
-        prefix = jobsets[:n]
-        matching_sublist = next(
-            (key for key in cache if prefix == key[:len(prefix)]), None)
-        for key in cache:
-            key = list(key)
-            if prefix == key[:len(prefix)]:
-                matching_sublist = prefix
-                # break  # If you only want to print the first matching sublist, you can break out of the loop
-        if matching_sublist is not None:
-            result_n = n
-            remaining_jobsets = jobsets[result_n:]
-            break
-
-    print("The highest value of n is:", result_n)
-    # print("Remaining elements:", remaining_jobsets)
-    # print("Matching sublist in my_second_list:", matching_sublist)
-    if (matching_sublist is not None) and tuple(matching_sublist) in cache:
-        cache_value = cache[tuple(matching_sublist)]
-
-    else:
-        remaining_jobsets = jobsets
-
-    return remaining_jobsets, cache_value
 
 
 def update_dependency_all_store_path_dict(raw_data, dicts, jobset, job):
@@ -362,65 +430,6 @@ def update_reverse_dependencies_dict(raw_data, dicts, jobset, job):
 
 # store path hash dict
 
-def get_cached_or_fetch_store_path_entropy_dict(hydra, project_name, traverse_jobset, recursive_mode_enabled, exponential_back_off_enabled, store_path_entropy_dict_cache):
-
-    store_path_hash_dict = {}
-
-    store_path_entropy_dict = {}
-
-    dependency_store_path_dict = {}
-
-    jobsets = hydra.get_jobsets(project_name)
-
-    cache_key = tuple(jobsets)
-
-    if cache_key in store_path_entropy_dict_cache:
-        return store_path_entropy_dict_cache[cache_key][0]
-
-    remaining_jobsets = jobsets
-
-    for jobset in remaining_jobsets:
-        traverse_jobset(hydra, project_name, jobset,
-                        lambda job, raw_data: update_store_path_hash_dict(raw_data, job, store_path_hash_dict, store_path_entropy_dict, dependency_store_path_dict), recursive_mode_enabled, exponential_back_off_enabled)
-
-    cache_key = tuple(jobsets)
-    store_path_entropy_dict_cache[cache_key] = (
-        store_path_entropy_dict, store_path_hash_dict)
-    return store_path_entropy_dict
-
-
-def update_store_path_hash_dict(raw_data, job, _store_path_hash_dict, _store_path_entropy_dict, _dependency_store_path_dict):
-
-    if raw_data is None:
-        print(f"update_store_path_hash_dict got raw_data is None")
-        return
-
-    references = extract_section(raw_data=raw_data, keyword="References")
-    store_path_hash_dict = _store_path_hash_dict
-    store_path_entropy_dict = _store_path_entropy_dict
-
-    grouped_items = group_items(references, {})
-
-    for key, group in grouped_items.items():
-
-        dependency = key
-
-        if job in store_path_hash_dict:
-            if dependency in store_path_hash_dict[job]:
-                if store_path_hash_dict[job][dependency] != group:
-                    # TODO: untested
-                    if dependency not in store_path_entropy_dict:
-                        store_path_entropy_dict[dependency] = 0
-                    else:
-                        store_path_entropy_dict[dependency] = store_path_entropy_dict[dependency] + 1
-                    store_path_hash_dict[job][dependency] = group
-            else:
-                # init dicts
-                store_path_hash_dict[job][dependency] = group
-        else:
-            store_path_hash_dict[job] = {}
-            store_path_hash_dict[job][dependency] = group
-
 
 def update_store_path_file_size_dict(raw_data, dicts, jobset, job):
 
@@ -463,8 +472,6 @@ def main():
 
     # Example: Logging in
     hydra.login(username="administrator", password="clearp@th")
-
-    get_cached_or_fetch_nar_info(hydra, nar_info_cache, "1")
 
 
 if __name__ == "__main__":

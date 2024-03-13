@@ -1,6 +1,31 @@
 from cache_directories import *
+
+
 def group_items(references, dependency_store_path_dict):
-    #TODO: testing performance
+    """
+    Groups items based on the equality of the second part after splitting each item in 'references' by '-'.
+
+    Args:
+    - references (list): A list of items to be grouped.
+    - dependency_store_path_dict (dict): A dictionary to store the hash values corresponding to the grouped items.
+
+    Returns:
+    - dict: A dictionary containing grouped items where the grouping criterion is the second part after splitting by '-'.
+
+    Note:
+    The function uses a cache ('group_items_cache') to improve performance by avoiding redundant computations.
+
+    Example:
+    ```
+    references = ['hash1-item1', 'hash2-item2', 'hash1-item3']
+    dependency_store = {}
+    result = group_items(references, dependency_store)
+    print(result)
+    # Output: {'item1': ['hash1-item1'], 'item2': ['hash2-item2'], 'item3': ['hash1-item3']}
+    ```
+
+    """
+    # TODO: testing performance
     if references in group_items_cache:
         return group_items_cache[references]
     grouped_items = {}

@@ -80,6 +80,7 @@ function createStorePathCaret(difference) {
         if ((itemCount == 0) || (ulElement.innerHTML.trim() === '')) {
             // Fetch children nodes from the server using AJAX
             $.get('/compare_and_group_references/' + difference[0] + '/' + difference[1], function (data) {
+                console.log(data);
                 for (const key in data) {
                     const value = data[key];
                     console.log('value: ', value);
@@ -142,17 +143,19 @@ function createJobCaret(job, value) {
 }
 
 // Function to add a new row to the table
-function addTableRow(dependency, count, fileSize) {
+function addTableRow(dependency, count, fileSize, entropyPosition) {
     var table = document.getElementById('myTable').getElementsByTagName('tbody')[0];
     var newRow = table.insertRow(table.rows.length);
 
     var cell1 = newRow.insertCell(0);
     var cell2 = newRow.insertCell(1);
     var cell3 = newRow.insertCell(2);
+    var cell4 = newRow.insertCell(2);
 
     cell1.textContent = dependency;
     cell2.textContent = count;
     cell3.textContent = fileSize;
+    cell3.textContent = entropyPosition;
 }
 
 function getJobs(projectName, jobset, callback) {
@@ -195,7 +198,7 @@ function getSelectedJobs() {
 
 function populateTable(data) {
     for (var key in data) {
-        addTableRow(key, data[key]['count'], data[key][['file_size']]);
+        addTableRow(key, data[key]['count'], data[key][['file_size']], data[key][['entropy_position']]);
     }
 }
 
@@ -207,6 +210,7 @@ function emptyList(listElement) {
 }
 
 function getDifferenceDependencyTree(projectName, previousJobset, jobset, callback) {
+    console.log('selectedJobs: ', selectedJobs);
     url = '/get_whats_new/' + projectName + '/' + previousJobset + '/' + jobset;
     $.get(url, { jobs: JSON.stringify(selectedJobs) }, function (data) {
         callback(data);
@@ -226,6 +230,8 @@ function jobSelectDropDownChange(jobSelect) {
     })
 
     var listElement = document.getElementById('list');
+
+    console.log('listElement: ', listElement);
 
     emptyList(listElement);
 
@@ -253,6 +259,7 @@ function showDetails(infoBox) {
         jobs = data;
         // Get the dropdown/select element
         var jobSelectDropDown = document.getElementById("jobSelect");
+        console.log(jobSelectDropDown);
 
         // Loop through the data and create an option element for each item
         for (var i = 0; i < jobs.length; i++) {

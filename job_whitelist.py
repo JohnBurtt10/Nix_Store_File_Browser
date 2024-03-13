@@ -1,0 +1,1 @@
+job_whitelist = ["runCommandHook.testrunner.x86_64-linux", "ottoFmCoreContainer.x86_64-linux", "ottoFmWebContainer.x86_64-linux", "simRobot.x86_64-linux", "simGazeboContainer.x86_64-linux", "virtualRobotContainer.x86_64-linux", "testrunnerContainer.x86_64-linux"]

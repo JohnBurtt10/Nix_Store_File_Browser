@@ -1,21 +1,28 @@
 from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
 from hydra_client import Hydra
 import dependency_analyzer
 from extract_earliest_latest_values import extract_earliest_latest_values
 import json
 import jobset_explorer
-import os
 import cache_utils
 from traverse_jobset import traverse_jobset
 from cache_directories import *
 from sum_2d_dicts import sum_2d_dicts_of_lists
-from sum_dicts import sum_dicts_of_lists, sum_dicts
+from sum_dicts import sum_dicts_of_lists
 from merge_dicts_with_preference import merge_2d_dicts_with_preference, merge_dicts_with_preference
+from new_calculate_entropy import get_cached_or_fetch_store_path_entropy_dict
+from cache_directories import *
+from get_sorted_jobsets import get_sorted_jobsets
+from generate_layers import generate_layers
 
 # TODO:
 # - Clear caches button
 
 app = Flask(__name__)
+
+import time
+from threading import Thread
 
 # hydra config
 hydra_url = "http://hydra.clearpath.ai/"
@@ -23,60 +30,123 @@ hydra = Hydra(url=hydra_url)
 
 hydra.login(username="administrator", password="clearp@th")
 
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+def simulate_progress():
+    for i in range(101):
+        time.sleep(0.1)  # Simulate a delay
+        socketio.emit('progress', {'progress': i}, namespace='/test')
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@socketio.on('connect', namespace='/test')
+def test_connect():
+    print('Client connected')
+    emit('message', {'data': 'Connected'})
+
+@socketio.on('disconnect', namespace='/test')
+def test_disconnect():
+    print('Client disconnected')
+
+@socketio.on('start_progress', namespace='/test')
+def start_progress(data):
+    # Unpack parameters from the data dictionary
+    number_of_layers = data.get('param1')
+    not_sure = data.get('param2')
+    print('progress started')
+
+    def update_progress(task, progress):
+        socketio.emit('progress', {'task': task, 'progress': round(progress)}, namespace='/test')
+
+
+    socketio.emit('result', generate_layers(hydra, update_progress, number_of_layers, not_sure), namespace='/test') 
+    # Start a new thread for simulating progress
+    # thread = Thread(target=simulate_progress)
+    # thread.start()
+
+if __name__ == '__main__':
+        # app.run(debug=True, )
+    socketio.run(app, port=5001, debug=True)
+
+
 # Create a route to handle the AJAX request
 
 
-@app.route('/process', methods=['POST'])
+@app.route('/generate_layers', methods=['GET', 'POST'])
+def handle_generate_layers():
+    data = request.json  # Assuming the data is in JSON format
+    # Unpack values into variables
+    number_of_layers = data.get('numberOfLayers')
+    not_sure = data.get('quantity')
+    thing = generate_layers(hydra, socketio, number_of_layers, not_sure)
+    return thing
+
+
+@app.route('/process', methods=['GET', 'POST'])
 def process():
 
+    data = request.json  # Assuming the data is in JSON format
     # client input
-    selected_project = request.form.get('selected_project', '')
-    selected_sort_key_1 = request.form.get('sort_key_1_select', '')
-    selected_sort_key_2 = request.form.get('sort_key_2_select', '')
-    selected_sort_key_1_order = request.form.get('sort_key_1_select_order', '')
-    selected_quantity = int(request.form.get('quantity', ''))
-    minimum_entropy = int(request.form.get('minimum_entropy', ''))
-    minimum_file_size = int(request.form.get('minimum_file_size', ''))
-    recursive_mode_enabled = request.form.get('recursive_mode_enabled', False)
-    exponential_back_off_enabled = request.form.get('exponential_back_off_enabled', False)
+    # Unpack values into variables
+    selected_sort_key_1_order = data.get('sort_key_1_select_order')
+    selected_quantity = data.get('quantity')
+    selected_sort_key_1 = data.get('sort_key_1_select')
+    selected_sort_key_2 = data.get('sort_key_2_select')
+    filters = data.get('filters', [])
+    selected_project = data.get('selected_project')
+    recursive_mode_enabled = data.get('recursive_mode_enabled', False)
+    exponential_back_off_enabled = data.get(
+        'exponential_back_off_enabled', False)
+    # selected_project = request.form.get('selected_project', '')
+    advanced_entropy_mode_enabled = data.get(
+        'advanced_entropy_mode_enabled', False)
+    approximate_uncalculated_jobsets_mode_enabled = data.get(
+        'approximate_uncalculated_jobsets_mode_enabled', False)
     print(f"selected_project: {selected_project}")
+    print(f"advanced_entropy_mode_enabled: {advanced_entropy_mode_enabled}")
     projects = hydra.get_projects()
-    jobsets = hydra.get_jobsets(project=selected_project)
     sort_keys = {'dependency_weight', 'entropy',
                  'file_size', 'reverse_dependency_weight'}
 
-    # store_path_jobsets_dict = cache_utils.general_cache_function(
-    #     hydra, selected_project, traverse_jobset, store_path_jobsets_dict_cache, cache_utils.update_store_path_jobsets_dict, recursive_mode_enabled, sum_2d_dicts_of_lists)[0]
-    # dependency_all_store_path_dict = cache_utils.general_cache_function(
-    #     hydra, selected_project, traverse_jobset, dependency_all_store_path_dict_cache, cache_utils.update_dependency_all_store_path_dict, recursive_mode_enabled, sum_dicts_of_lists)[0]
-    # store_path_file_size_dict = cache_utils.general_cache_function(
-    #     hydra, selected_project, traverse_jobset, store_path_file_size_dict_cache, cache_utils.update_store_path_file_size_dict, recursive_mode_enabled, merge_dicts_with_preference)[0]
-    # dependency_store_path_dict = cache_utils.general_cache_function(
-    #     hydra, selected_project, traverse_jobset, dependency_store_path_dict_cache, cache_utils.update_dependency_store_path_dict, recursive_mode_enabled, merge_2d_dicts_with_preference)[0]
-    # reverse_dependencies_dict = cache_utils.general_cache_function(
-    #     hydra, selected_project, traverse_jobset, reverse_dependencies_dict_cache, cache_utils.update_reverse_dependencies_dict, recursive_mode_enabled, sum_2d_dicts_of_lists)[0]
+    sorted_jobsets = get_sorted_jobsets(hydra, selected_project)
 
+    latest_jobset = sorted_jobsets[-2]
 
     cache_functions = [
-    (store_path_jobsets_dict_cache, cache_utils.update_store_path_jobsets_dict, sum_2d_dicts_of_lists),
-    (dependency_all_store_path_dict_cache, cache_utils.update_dependency_all_store_path_dict, sum_dicts_of_lists),
-    (store_path_file_size_dict_cache, cache_utils.update_store_path_file_size_dict, merge_dicts_with_preference),
-    (dependency_store_path_dict_cache, cache_utils.update_dependency_store_path_dict, merge_2d_dicts_with_preference),
-    (reverse_dependencies_dict_cache, cache_utils.update_reverse_dependencies_dict, sum_2d_dicts_of_lists),
-]
+        (store_path_jobsets_dict_cache,
+         cache_utils.update_store_path_jobsets_dict, sum_2d_dicts_of_lists, "Getting all of the jobsets that packages are in", [latest_jobset]),
+        (dependency_all_store_path_dict_cache,
+         cache_utils.update_dependency_all_store_path_dict, sum_dicts_of_lists, "Finding all store paths for packages", None),
+        # TODO: make it so that these two only traverse latest jobset
+        (store_path_file_size_dict_cache,
+         cache_utils.update_store_path_file_size_dict, merge_dicts_with_preference, "Getting the file size of packages", [latest_jobset]),
+        (dependency_store_path_dict_cache,
+         cache_utils.update_dependency_store_path_dict, merge_2d_dicts_with_preference, "Getting the latest store path of packages", [latest_jobset]),
+        (reverse_dependencies_dict_cache,
+         cache_utils.update_reverse_dependencies_dict, sum_2d_dicts_of_lists, "Getting the reverse dependencies of packages", [latest_jobset]),
+    ]
 
     results = []
 
-    for cache, update_function, merge_function in cache_functions:
-        result = cache_utils.general_cache_function(hydra, selected_project, traverse_jobset, cache, update_function, recursive_mode_enabled, exponential_back_off_enabled, merge_function)[0]
+    for cache, update_function, merge_function, progress_bar_desc, jobsets in cache_functions:
+        result = cache_utils.general_cache_function(hydra, selected_project, traverse_jobset, cache,
+                                                    update_function, recursive_mode_enabled, exponential_back_off_enabled, True, True, progress_bar_desc, jobsets, merge_function)[0]
         results.append(result)
 
     store_path_jobsets_dict, dependency_all_store_path_dict, store_path_file_size_dict, dependency_store_path_dict, reverse_dependencies_dict = results
 
-    latest_jobset = "v2.32.0-20240126033851-0"
+    if advanced_entropy_mode_enabled:
+        # advanced entropy
+        store_path_entropy_dict = get_cached_or_fetch_store_path_entropy_dict(
+            hydra, selected_project, approximate_uncalculated_jobsets_mode_enabled)
+    else:
+        # basic entropy
+        store_path_entropy_dict = cache_utils.get_basic_entropy(
+            dependency_all_store_path_dict)
 
-    store_path_entropy_dict = cache_utils.get_cached_or_fetch_store_path_entropy_dict(
-        hydra, selected_project, traverse_jobset, recursive_mode_enabled, exponential_back_off_enabled, store_path_entropy_dict_cache)
     earliest_latest_values_dict = extract_earliest_latest_values(
         input_dict=reverse_dependencies_dict)
 
@@ -94,21 +164,24 @@ def process():
                                                                  sort_order=selected_sort_key_1_order,
                                                                  n=selected_quantity,
                                                                  # TODO fix names
-                                                                 minimum_entropy=minimum_entropy,
-                                                                 minimum_file_size=minimum_file_size,
+                                                                 filters=filters,
+                                                                 #  minimum_entropy=minimum_entropy,
+                                                                 #  minimum_file_size=minimum_file_size,
                                                                  print_dependency_weight=False)
 
+    build_info_cache["gwfiwfqwDO"] = top_n_values
+    return [top_n_values, sorted_jobsets]
     return render_template('index.html',
                            projects=projects,
                            sort_keys=sort_keys,
                            top_n_values=top_n_values,
                            selected_quantity=selected_quantity,
-                           default_minimum_entropy=minimum_entropy,
-                           default_minimum_file_size=minimum_file_size,
+                           #    default_minimum_entropy=minimum_entropy,
+                           #    default_minimum_file_size=minimum_file_size,
                            selected_sort_key_1=selected_sort_key_1,
                            selected_sort_key_2=selected_sort_key_2,
                            selected_project=selected_project,
-                           #    earliest_jobset=earliest_jobset,
+                           #   earliest_jobset=earliest_jobset,
                            latest_jobset=latest_jobset,
                            jobsets=jobsets)
 
@@ -186,6 +259,21 @@ def get_dependencies_of_jobs(project_name, jobset1, jobset2):
     (final_hash_map, final_count_hash_map) = jobset_explorer.compare_and_process_builds(
         project_name=project_name, hydra=hydra, jobs=jobs, jobset1=jobset1, jobset2=jobset2)
 
+    # store_path_entropy_dict = cache_utils.get_cached_or_fetch_store_path_entropy_dict(
+    #     hydra, project_name, traverse_jobset, False, False, store_path_entropy_dict_cache)
+
+    # Sorting the dictionary by values
+    # sorted_dict = dict(
+    #     sorted(store_path_entropy_dict.items(), key=lambda item: item[1]))
+
+    entropy_position_dict = {}
+
+    # Creating a new dictionary with positions
+    # entropy_position_dict = {key.split('-', 1)[1]: key for position, (key, _) in enumerate(sorted_dict.items(), 1)}
+
+    # combined_dict = {key: {
+    #     'file_size': final_hash_map[key], 'count': final_count_hash_map[key], 'entropy_position': entropy_position_dict.get(key, 0)} for key in final_hash_map}
+
     combined_dict = {key: {
         'file_size': final_hash_map[key], 'count': final_count_hash_map[key]} for key in final_hash_map}
 
@@ -239,7 +327,7 @@ def get_jobs(project_name, jobset):
 
 
 @app.route('/')
-def index():
+def index(test="index"):
 
     # hydra config
     hydra_url = "http://hydra.clearpath.ai/"
@@ -248,7 +336,7 @@ def index():
 
     projects = hydra.get_projects()
 
-    return render_template("index.html", projects=projects,
+    return render_template("index" + ".html", projects=projects,
                            sort_keys={'dependency_weight',
                                       'entropy', 'file_size', 'reverse_dependency_weight'},
                            top_n_values='',
@@ -260,5 +348,15 @@ def index():
                            minimum_file_size=0)
 
 
+def main():
+    # store_path_entropy_dict = cache_utils.get_cached_or_fetch_store_path_entropy_dict(
+    #     hydra, "v2-32-devel", traverse_jobset, False, False, store_path_entropy_dict_cache)
+    # return
+    # generate_layers(hydra)
+    pass
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    main()
+    app.run(debug=True, port=5001)
+    # app.run(host='0.0.0.0', port=5000, debug=False)

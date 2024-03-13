@@ -35,6 +35,7 @@ Thumbs.db
 /build/
 /dist/
 /out/
+/output_files/
 
 # Ignore logs and databases
 *.log

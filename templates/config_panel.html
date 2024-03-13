@@ -1,7 +1,9 @@
-<link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+<!-- <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}"> -->
 
 
 <button class="openConfigButton" style="display: inline;" onclick="toggleConfigPanel()">Open Configuration</button>
+
+
 
 <div id="overlay"></div>
 
@@ -21,5 +23,35 @@
         than the speed at which it is performed.
     </p>
 
+    <label style="display: inline;" class="configPanelLabel" for="advancedEntropyModeToggle">Advanced Entropy
+        Mode:</label>
+    <input style="display: inline;" type="checkbox" id="advancedEntropyModeToggle" name="advancedEntropyModeToggle">
+    <p>When enabled, the entropy is calculated based on how many instances there are of a package changing, when
+        disabled
+        entropy is calculated based on how many different store paths there are for a package.
+    </p>
+
+    <label style="display: inline;" class="configPanelLabel" for="approximateUncalculatedJobsetsToggle">Approximate Uncalculated Jobsets
+        Mode:</label>
+    <input style="display: inline;" type="checkbox" id="approximateUncalculatedJobsetsToggle"
+        name="approximateUncalculatedJobsetsToggle">
+    <p>When enabled, the entropy for the uncalculated jobsets is linearly approximated.
+    </p>
+
+    <!-- <label style="display: inline;" class="configPanelLabel" for="approximateUncalculatedJobsetsToggle">Approximate Uncalculated Jobsets
+        Mode:</label>
+    <input style="display: inline;" type="checkbox" id="approximateUncalculatedJobsetsToggle"
+        name="approximateUncalculatedJobsetsToggle">
+    <p>When enabled, the entropy for the uncalculated jobsets is linearly approximated.
+    </p>
+
+    <label style="display: inline;" class="configPanelLabel" for="approximateUncalculatedJobsetsToggle">Approximate Uncalculated Jobsets
+        Mode:</label>
+    <input style="display: inline;" type="checkbox" id="approximateUncalculatedJobsetsToggle"
+        name="approximateUncalculatedJobsetsToggle">
+    <p>When enabled, the entropy for the uncalculated jobsets is linearly approximated.
+    </p> -->
+
     <button class="openConfigButton" onclick="saveConfig()">Save Configuration</button>
+
 </div>

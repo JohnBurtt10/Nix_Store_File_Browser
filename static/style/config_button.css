@@ -43,3 +43,16 @@
 openConfigButton:hover {
     background-color: #45a049;
 }
+
+.generateLayersButton {
+    padding: 8px;
+    background-color: #a04caf;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+generateLayersButton:hover {
+    background-color: #a04cae;
+}

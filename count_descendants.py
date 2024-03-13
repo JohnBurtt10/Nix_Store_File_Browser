@@ -4,22 +4,45 @@ from get_references_and_file_size_from_store_path import get_references_and_file
 
 
 def count_descendants(hydra, raw_data, reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict):
+    """
+    Count descendants for each reference in the given raw data.
+
+    Args:
+    - hydra (Hydra): The hydra information.
+    - raw_data (str): Raw data containing information.
+    - reverse_dependency_weight_dict (dict): Dictionary to store reverse dependency weights.
+    - file_size_reverse_dependency_weight_dict (dict): Dictionary to store file size reverse dependency weights.
+
+    Returns:
+    - tuple: A tuple containing updated reverse_dependency_weight_dict and file_size_reverse_dependency_weight_dict.
+
+    Note:
+    The function extracts references from the raw data, splits them, and counts descendants for each reference.
+    The results are stored in the provided dictionaries.
+
+    Example:
+    ```
+    hydra =
+    raw_data = "example raw data"
+    reverse_dependency_weight_dict = {}
+    file_size_reverse_dependency_weight_dict = {}
+    result = count_descendants(hydra, raw_data, reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict)
+    print(result)
+    # Output: ({'key1': 5, 'key2': 10}, {'key1': 100, 'key2': 200})
+    ```
+
+    """
     references = extract_section(raw_data=raw_data, keyword="References")
     for reference in references:
-        if "logic_strategy_editor" in reference:
-            print(f"reference: {reference}")
         parts = reference.split('-', 1)
         key = parts[1]
         (reverse_dependency_weight_dict[key], file_size_reverse_dependency_weight_dict[key]) = _count_descendants(
             hydra, reference)
-        # print(f"count_descendants: {reverse_dependency_weight_dict}")
 
     return reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict
 
 
 def _count_descendants(hydra, package):
-    if "logic_strategy_editor" in package:
-        print(f"reference: {package}")
     if package is None:
         return (0, 0)
 
@@ -32,7 +55,6 @@ def _count_descendants(hydra, package):
     descent_file_size = 0
     references_file_size = 0
     for child in references:
-        # print(f"package: {child}")
         (_, child_file_size) = get_references_and_file_size_from_store_path(
             hydra, package)
         references_file_size += child_file_size

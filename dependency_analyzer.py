@@ -1,6 +1,5 @@
 from hydra_client import Hydra
 from cache_directories import *
-from datetime import datetime
 from has_timestamp import has_timestamp
 from raw_data_utilities import extract_section
 import cache_utils
@@ -9,7 +8,6 @@ import concurrent.futures
 from traverse_jobset import traverse_jobset
 from count_descendants import count_descendants
 from calculate_dependency_weight import calculate_dependency_weight
-from process_dependency_group import process_dependency_group
 
 # TODO: break this up into multiple caches
 
@@ -32,8 +30,9 @@ def compute_top_n_information(store_path_entropy_dict,
                               sort_key1='entropy',
                               sort_key2='entropy',
                               sort_order='desc',
-                              minimum_file_size=0,
-                              minimum_entropy=0,
+                              filters=[],
+                              #   minimum_file_size=0,
+                              #   minimum_entropy=0,
                               print_to_console=False):
     """
     Prints the top N values from dictionaries.
@@ -58,7 +57,7 @@ def compute_top_n_information(store_path_entropy_dict,
     }
 
     total_weight, weight_key, nodes, count_file_size, total_file_size = cache_utils.get_cached_or_compute_dependency_weight(
-        project_name, "v2.32.0-20240129033831-0", dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight)
+        project_name, latest_jobset, dependency_weight_cache, hydra, calculate_dependency_weight)
 
     # print(f"finished get_cached_or_compute_dependency_weight()")
 
@@ -66,12 +65,13 @@ def compute_top_n_information(store_path_entropy_dict,
     file_size_reverse_dependency_weight_dict = {}
 
     (reverse_dependency_weight_dict, file_size_reverse_dependency_weight_dict) = cache_utils.get_cached_or_compute_reverse_dependency_weight(project_name,
-                                                                                                                                             "v2.32.0-20240129033831-0",
+                                                                                                                                             latest_jobset,
                                                                                                                                              reverse_dependency_weight_cache,
                                                                                                                                              traverse_jobset,
                                                                                                                                              hydra,
                                                                                                                                              count_descendants)
 
+    # return
     # print(f"finished get_cached_or_compute_reverse_dependency_weight(): {reverse_dependency_weight_dict}")
     # print(f"reverse_dependency_weight_dict: {reverse_dependency_weight_dict}")
     # Combine all dictionaries into a single dictionary with keys from file size dict
@@ -83,11 +83,28 @@ def compute_top_n_information(store_path_entropy_dict,
         for key in store_path_file_size_dict
     }
 
-    # Filter out items based on conditions
-    filtered_dict = {
-        key: (file_size, entropy, dependency_weight, reverse_dependency_weight) for key, (file_size, entropy, dependency_weight, reverse_dependency_weight) in combined_dict.items()
-        if file_size >= minimum_file_size and entropy >= minimum_entropy
-    }
+    filtered_dict = combined_dict
+
+    for filter in filters:
+        extremum_select = filter.get('extremum_select')
+        filter_key_select = filter.get('filter_key_select')
+        filter_value = int(filter.get('filter_value'))
+
+        print(f"extremum_select: {extremum_select}, filter_key_select: {filter_key_select}, filter_value: {filter_value}")
+
+        # Filter out items based on conditions
+
+        filtered_dict = {
+            key: (file_size, entropy, dependency_weight, reverse_dependency_weight) for key, (file_size, entropy, dependency_weight, reverse_dependency_weight) in filtered_dict.items()
+            if (extremum_select == 'minimum' and filter_key_select == 'entropy' and entropy >= filter_value) or
+                (extremum_select == 'minimum' and filter_key_select == 'file_size' and file_size >= filter_value) or
+                (extremum_select == 'minimum' and filter_key_select == 'dependency_weight' and dependency_weight >= filter_value) or
+                (extremum_select == 'minimum' and filter_key_select == 'reverse_dependency_weight' and reverse_dependency_weight >= filter_value) or
+                (extremum_select == 'maximum' and filter_key_select == 'entropy' and entropy <= filter_value) or
+                (extremum_select == 'maximum' and filter_key_select == 'file_size' and file_size <= filter_value) or
+                (extremum_select == 'maximum' and filter_key_select == 'dependency_weight' and dependency_weight <= filter_value) or
+                (extremum_select == 'maximum' and filter_key_select == 'reverse_dependency_weight' and reverse_dependency_weight <= filter_value)
+        }
 
     # Choose the sorting order based on user input
     reverse_order = sort_order.lower() == 'desc'
@@ -100,10 +117,8 @@ def compute_top_n_information(store_path_entropy_dict,
 
         # Sort the combined dictionary items based on the specified sort index
         sorted_items = sorted(filtered_dict.items(
-        ), key=lambda x: x[1][sort_mapping.get(sort_key1, 0)], reverse=reverse_order)
+        ), key=lambda x: x[1][sort_mapping.get(sort_key1, 0)], reverse=True)
         first_sort_cache[(filtered_dict, sort_key1)] = sorted_items
-
-    # print(f"sorted_items: {sorted_items}")
 
     # Extract the top N values
     top_n_values = sorted_items[:int(n)]
@@ -111,12 +126,8 @@ def compute_top_n_information(store_path_entropy_dict,
     top_n_values = sorted(top_n_values, key=lambda x: x[1][sort_mapping.get(
         sort_key2, 0)], reverse=True)
 
-    # print(f"top_n_values: {top_n_values}")
-
     top_n_values_dynamic = []
-
     for iteration, (key, (file_size, entropy, dependency_weight, reverse_dependency_weight)) in enumerate(top_n_values):
-        # print(f"thing: {weight_key.get(key, 0)}")
         if (print_to_console):
             output = f"{key}:"
             if print_file_size:
@@ -149,7 +160,11 @@ def get_children(hydra, hash):
 
     raw_data = cache_utils.get_cached_or_fetch_nar_info(
         hydra, nar_info_cache, hash, False)
+    store_path = extract_section(raw_data=raw_data, keyword="StorePath")[0]
+    store_name = store_path.split("/nix/store/")[1]
     references = extract_section(raw_data=raw_data, keyword="References")
+    if store_name in references:
+        references.remove(store_name)
     return references
 
 
@@ -157,6 +172,7 @@ async def get_children_recursive(hydra, hash, visited=None):
     if visited is None:
         visited = set()
 
+    # TODO: review this?
     if hash in visited:
         return set()
 
@@ -254,7 +270,7 @@ def compare(hydra, base_node, compare_node):
 
 def temp(project_name, hydra, jobset):
     total_weight, total_nodes, _, _, _ = cache_utils.get_cached_or_compute_dependency_weight(
-        project_name, jobset, dependency_weight_cache, traverse_jobset, hydra, calculate_dependency_weight)
+        project_name, jobset, dependency_weight_cache, hydra, calculate_dependency_weight)
     return total_weight, total_nodes
 
 # BUG: I think that when there is a new jobset at least the reverse dependencies gets messed up bc of update_dicts_cache

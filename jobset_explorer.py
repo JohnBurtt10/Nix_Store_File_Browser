@@ -6,8 +6,9 @@ from raw_data_utilities import extract_section
 from hydra_client import Hydra
 from traverse_jobset import traverse_jobset
 from sum_dicts import sum_dicts
+from compare_and_group_references import compare_and_group_references
+from get_jobset_builds import get_jobset_builds
 # TODO: name?
-
 
 def update_job_references_dict_with_dict(job_references_dict, job, raw_data):
     references = extract_section(raw_data=raw_data, keyword="References")
@@ -78,43 +79,6 @@ def store_path_get_file_size(hydra, store_path):
     file_size = extract_section(raw_data=raw_data, keyword="FileSize")
     # TODO: ?
     return int(file_size[0])
-
-# given 2 lists of references returns the changes in dependencies
-
-
-def compare_and_group_references(references1, references2):
-
-    if (references1, references2) in compare_and_group_references_cache:
-        return compare_and_group_job_cache[(references1, references2)]
-
-    jobset1_unique_references = [item for item in references1 if (
-        item not in references2) and "merged" not in item]
-
-    jobset2_unique_references = [item for item in references2 if (
-        item not in references1) and "merged" not in item]
-    # Create a dictionary to group items
-    grouped_items = {}
-
-    for item in jobset1_unique_references + jobset2_unique_references:
-        key = item.split('-', 1)[1]
-
-        # Define a regular expression pattern to match timestamps
-        timestamp_pattern = r'\d{14}'
-
-        # Replace timestamps in both strings with an empty string
-        str_without_timestamp = re.sub(timestamp_pattern, '', key)
-
-        if str_without_timestamp not in grouped_items:
-            grouped_items[str_without_timestamp] = {'list1': [], 'list2': []}
-
-        if item in references1:
-            grouped_items[str_without_timestamp]['list1'].append(item)
-        elif item in references2:
-            grouped_items[str_without_timestamp]['list2'].append(item)
-
-    compare_and_group_job_cache[(references1, references2)] = grouped_items
-    return grouped_items
-
 
 def calculate_recursive_file_size_change(hydra, store_path1, store_path2):
     if ("calculate", store_path1, store_path2) in cache:
@@ -239,14 +203,8 @@ def update_maps_with_cache(project_name, job1, jobset1, jobset2, final_hash_map,
         project_name, job1, jobset1, jobset2)]
     final_hash_map = sum_dicts(final_hash_map, result_hash_map)
     final_count_hash_map = sum_dicts(final_count_hash_map, count_hash_map)
-
-
-def get_jobset_builds(hydra, project_name, jobset):
-    data = cache_utils.get_cached_or_fetch_jobset_evals(
-        hydra, jobset_evals_cache, project_name, jobset)
-    eval_info = data.get('evals', [])[0]
-    builds = eval_info.get('builds', [])
-    return builds
+    # TODO: shouldn't need to do this?
+    return (final_hash_map, final_count_hash_map)
 
 
 def compare_and_process_builds(project_name, hydra, jobs, jobset1, jobset2):
@@ -264,8 +222,9 @@ def compare_and_process_builds(project_name, hydra, jobs, jobset1, jobset2):
         if job1 not in jobs:
             continue
         if (project_name, job1, jobset1, jobset2) in compare_and_process_builds_cache:
-            update_maps_with_cache(
+            (final_hash_map, final_count_hash_map) = update_maps_with_cache(
                 project_name, job1, jobset1, jobset2, final_hash_map, final_count_hash_map)
+            print(f"final_hash_map: {final_hash_map}")
             continue
         for build2 in builds2:
             build_info2 = cache_utils.get_cached_or_fetch_build_info(
@@ -276,8 +235,15 @@ def compare_and_process_builds(project_name, hydra, jobs, jobset1, jobset2):
         references1 = get_references_from_build_info(hydra, build_info1)
         references2 = get_references_from_build_info(hydra, build_info2)
         grouped_items = compare_and_group_references(references1, references2)
-        (final_hash_map, final_count_hash_map) = update_maps_for_grouped_items(
-            hydra, grouped_items, final_hash_map, final_count_hash_map)
+        _final_hash_map = {}
+        _final_count_hash_map = {}
+        (_final_hash_map, _final_count_hash_map) = update_maps_for_grouped_items(
+            hydra, grouped_items, _final_hash_map, _final_count_hash_map)
+        compare_and_process_builds_cache[(project_name, job1, jobset1, jobset2)] = (
+            _final_hash_map, _final_count_hash_map)
+        final_hash_map = sum_dicts(final_hash_map, _final_hash_map)
+        final_count_hash_map = sum_dicts(
+            final_count_hash_map, _final_count_hash_map)
 
     return final_hash_map, final_count_hash_map
 
@@ -337,11 +303,11 @@ def process_and_compare_paths(hydra, store_path1, store_path2, file_size, result
                             c_h_m[list1_item] = 1
         process_and_compare_paths_cache[(
             store_path1, store_path2, file_size)] = (r_c_m, c_h_m)
-    print(f"r_c_m: {r_c_m}, c_h_m: {c_h_m}")
+    # print(f"r_c_m: {r_c_m}, c_h_m: {c_h_m}")
     (result_hash_map, count_hash_map) = update_process_compare_store_paths_maps(
         result_hash_map, count_hash_map, r_c_m, c_h_m)
-    print(
-        f"result_hash_map: {result_hash_map}, count_hash_map: {count_hash_map}")
+    # print(
+    #     f"result_hash_map: {result_hash_map}, count_hash_map: {count_hash_map}")
     # TODO: shouldn't need to do this?
     return result_hash_map, count_hash_map
 

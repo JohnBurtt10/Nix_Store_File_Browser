@@ -54,8 +54,8 @@ def merge_dicts_with_preference(dict1, dict2):
     return merged_dict
 
 # Example usage:
-dict1 = {'a': 1, 'b': 2, 'c': 3}
-dict2 = {'a': 10, 'd': 4, 'e': 5}
+# dict1 = {'a': 1, 'b': 2, 'c': 3}
+# dict2 = {'a': 10, 'd': 4, 'e': 5}
 
-result = merge_dicts_with_preference(dict1, dict2)
-print(result)
+# result = merge_dicts_with_preference(dict1, dict2)
+# print(result)

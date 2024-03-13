@@ -4,6 +4,8 @@ from cache_directories import *
 
 
 def get_references_and_file_size_from_store_path(hydra, store_path):
+    if store_path is None:
+        return ([], None)
     parts = store_path.split('-', 1)
     hash_value = parts[0]
     raw_data = cache_utils.get_cached_or_fetch_nar_info(

@@ -1,4 +1,4 @@
-<form action="/process" method="post" onsubmit="postData();">
+<form id="myForm" onsubmit="submitForm();">
     <div>
         <label for="quantity">Display the</label>
         <select id="sortKey1SelectOrder" name="sort_key_1_select_order" default="top">
@@ -12,20 +12,43 @@
             <option value="{{ sort_key }}">{{ sort_key }}</option>
             {% endfor %}
         </select>
+        ,
+    </div>
+    <div id="container">
+
         <!-- minimum entropy input -->
-        <label for="minimum_entropy">, with a minimum of: </label>
-        <input type="number" id="minimum_entropy" name="minimum_entropy" min="1" max="500">
+        <div>
+            <label for="minimum_entropy">with a </label>
+            <select id="extremumSelect" name="extremum_select" default="minimum">
+                <option value="minimum">minimum</option>
+                <option value="maximum">maximum</option>
+            </select>
+            <select id="filterKeySelect" name="filter_key_select" default="minimum">
+                {% for sort_key in sort_keys %}
+                <option value="{{ sort_key }}">{{ sort_key }}</option>
+                {% endfor %}
+            </select>
+            of
+            <input type="number" id="filter_value" name="filter_value" min="0" max="500">
+            <button type="button" onclick="removeDiv(this)">Remove</button>
+        </div>
+    </div>
+    <div>
+        <button type="button" onclick="addDiv()">Add</button>
+    </div>
+    <div>
 
-        <!-- minimum file size input -->
+        <!-- minimum file size input
         <label for="minimum_file_size"> entropy, and a minimum file size of: </label>
-        <input type="number" id="minimum_file_size" name="minimum_file_size" min="1" max="500">
+        <input type="number" id="minimum_file_size" name="minimum_file_size" min="0" max="500"> -->
 
-        <label for="sortKey2Select">MB, sorted by: </label>
-        <select id="sortKey2Select" name="sort_key_2_select">
+        <!-- <label for="sortKey2Select">MB, sorted by: </label> -->
+        sorted by: <select id="sortKey2Select" name="sort_key_2_select">
             {% for sort_key in sort_keys %}
             <option value="{{ sort_key }}">{{ sort_key }}</option>
             {% endfor %}
         </select>
+
 
         <!-- project input -->
         <label for="projectSelect">, in the project:</label>
@@ -41,31 +64,93 @@
 </form>
 
 <script>
+    document.getElementById('myForm').addEventListener('submit', function (event) {
+        // Prevent the form from submitting immediately
+        console.log('here');
+        event.preventDefault();
 
-var defaultSelectedValue1 = '{{ selected_sort_key_1 }}';
+       
 
-// second sort key
-
-var defaultSelectedValue2 = '{{ selected_sort_key_2 }}';
-
-// project 
-
-var defaultSelectedProject = '{{ selected_project }}';
-
-console.log(defaultSelectedProject);
-
-// select
-
-var defaultValue = '{{ selected_quantity }}';
-
-// minimum entropy
-
-var defaultMinimumEntropyValue = '{{ default_minimum_entropy }}';
-
-// minimum file size
-
-var defaultMinimumFileSizeValue = '{{ default_minimum_file_size }}';
+    });
 
 </script>
 
-<script src="{{ url_for('static', filename='scripts/set_form_default_values.js') }}"></script>
+
+<script>
+
+    var sortKeys = '{{ sort_keys }}';
+    const inputString = '{&#39;entropy&#39;, &#39;dependency_weight&#39;, &#39;file_size&#39;, &#39;reverse_dependency_weight&#39;}';
+
+    // Decode HTML entities
+    const decodedString = new DOMParser().parseFromString(`<!doctype html><body>${inputString}`, 'text/html').body.textContent;
+
+    // Extract keys using regular expression
+    const keyPattern = /'([^']*)'/g;
+    const extractedKeys = [];
+    let match;
+
+    while ((match = keyPattern.exec(decodedString)) !== null) {
+        extractedKeys.push(match[1]);
+    }
+
+    var selectOptions = '';
+    for (var i = 0; i < extractedKeys.length; i++) {
+        console.log(extractedKeys[i])
+        selectOptions += '<option value="' + extractedKeys[i] + '">' + extractedKeys[i] + '</option>';
+    }
+    function addDiv() {
+        var container = document.getElementById('container');
+        var newDiv = document.createElement('div');
+        newDiv.innerHTML = `
+            <label for="minimum_entropy">with a </label>
+            <select id="extremumSelect" name="extremum_select" default="minimum">
+                <option value="minimum">minimum</option>
+                <option value="maximum">maximum</option>
+            </select>
+            <select id="filterKeySelect" name="filter_key_select" default="minimum">
+                <!-- Replace this with your backend logic to populate options -->
+                ${selectOptions}
+            </select>
+            of 
+            <input type="number" id="filter_value" name="filter_value" min="0" max="500">
+            <button type="button" onclick="removeDiv(this)">Remove</button>
+        `;
+        container.appendChild(newDiv);
+    }
+
+    function removeDiv(button) {
+        var container = document.getElementById('container');
+        var divToRemove = button.parentNode;
+        container.removeChild(divToRemove);
+    }
+</script>
+
+<script>
+
+    var defaultSelectedValue1 = '{{ selected_sort_key_1 }}';
+
+    // second sort key
+
+    var defaultSelectedValue2 = '{{ selected_sort_key_2 }}';
+
+    // project 
+
+    var defaultSelectedProject = '{{ selected_project }}';
+
+    console.log(defaultSelectedProject);
+
+    // select
+
+    var defaultValue = '{{ selected_quantity }}';
+
+    // minimum entropy
+
+    var defaultMinimumEntropyValue = '{{ default_minimum_entropy }}';
+
+    // minimum file size
+
+    var defaultMinimumFileSizeValue = '{{ default_minimum_file_size }}';
+
+</script>
+
+<!-- <script src="{{ url_for('static', filename='scripts/set_form_default_values.js') }}"></script> -->

@@ -24,8 +24,6 @@ async def _count_ancestors(hydra, package, current_depth, max_depth):
     file_size = int(extract_section(raw_data=raw_data, keyword="FileSize")[0])
 
     total_nodes += 1
-    # if package not in total_file_size:
-    #     total_file_size[package] = 0
     total_file_size += file_size
 
     if package is not None:
@@ -48,7 +46,6 @@ async def _count_ancestors(hydra, package, current_depth, max_depth):
 
         for child in references:
             if child != package:
-                # print(f"depth: {current_depth}, child: {child}, package: {package}")
                 if child in count_ancestor_cache:
                     c, ck, nodes, t, size, count_size, t_file_size = count_ancestor_cache[child]
                 else:
