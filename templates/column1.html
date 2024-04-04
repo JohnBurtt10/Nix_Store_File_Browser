@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Column 1</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .content {
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header" onclick="toggleColumn('column1')">Column 1</div>
+    <div class="content">
+        <!-- Column 1 content goes here -->
+        {% include 'config_panel.html' %}
+
+        <!-- generate data form -->
+        {% include 'generate_data_form.html' %}
+        {# Pass variables to the included template using the 'with' statement #}
+        {% with sort_keys=sort_keys,
+        selected_quantity=selected_quantity,
+        default_minimum_entropy=minimum_entropy,
+        default_minimum_file_size=minimum_file_size,
+        selected_sort_key_1=selected_sort_key_1,
+        selected_sort_key_2=selected_sort_key_2,
+        selected_project=selected_project %}
+        {% endwith %}
+        <div id="storePathList">
+            {% include 'store_path_list.html' %}
+        </div>
+    </div>
+
+    <script>
+        function toggleColumn(columnId) {
+            const column = document.getElementById(columnId);
+            column.classList.toggle('closed');
+        }
+    </script>
+</body>
+
+</html>

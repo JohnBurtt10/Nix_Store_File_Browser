@@ -5,10 +5,21 @@ from tqdm import tqdm
 import time
 from job_whitelist import job_whitelist
 from has_timestamp import has_timestamp
-import json
+import pickle
+from update_file_variable_value import update_file_variable_value
 
 
-def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursive_mode_enabled=False, exponential_back_off_enabled=False, only_visit_once_enabled=False, progress_bar_enabled=False, whitelist_enabled=False, progress_bar_desc="Default progress bar desc", visited=[], jobs=[]):
+def retrieve_and_check_cancel():
+    # Retrieve variables from the file
+    with open('data.pkl', 'rb') as f:  # Open file in binary read mode
+        loaded_data = pickle.load(f)
+    if loaded_data['proceed']:
+        update_file_variable_value('proceed', False)
+        return True
+    if loaded_data['cancel']:
+        return True
+
+def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, func, recursive_mode_enabled=False, exponential_back_off_enabled=False, only_visit_once_enabled=False, progress_bar_enabled=False, whitelist_enabled=False, progress_bar_desc="Default progress bar desc", visited=[], jobs=[], cancellable=False, unique_packages_enabled=True, fowfol=set(), gigmi=set()):
     """
     Traverse a jobset and apply a function to each build.
 
@@ -27,7 +38,7 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
 
     Note:
     The function uses caching utilities to get information about jobset evaluations and build details.
-    It then iterates through the builds, applying the provided function to each build.
+It then iterates through the builds, applying the provided function to each build.
 
     Example:
     ```
@@ -52,6 +63,7 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
             builds = evals_info[0].get('builds', [])
             break
         except IndexError as e:
+            report_error(1)
             print(
                 f"encountered {e} while trying to get builds, sleeping for 5 seconds and then trying again...")
             time.sleep(5)
@@ -62,26 +74,26 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
 
     # if you remove this it reuses the same one
     visited = []
-    
+
     if whitelist_enabled:
 
         for build in builds:
             build_info = cache_utils.get_cached_or_fetch_build_info(
-            hydra, build_info_cache, build)
+                hydra, build_info_cache, build)
             job = build_info.get('job', [])
             if job in job_whitelist and (not jobs or job in jobs):
                 filtered_builds.append(build)
-    
+
     else:
         filtered_builds = builds
-
 
     # progress = {'task': 'getting recursive dependencies...', 'progress': 0}
     # # Serialize JSON to bytes before yielding
     # yield json.dumps(progress) + '\n'
     if progress_bar_enabled:
-        if not jobs: 
-            update_progress("Getting recursive dependencies for all jobs...", 0)
+        if not jobs:
+            update_progress(
+                "Getting recursive dependencies for all jobs...", 0)
         else:
             if len(jobs) == 1:
                 result_string = jobs[0]
@@ -91,7 +103,8 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
                 # Adding 'and' before the last element
                 result_string += ', and ' + jobs[-1]
 
-            update_progress("Getting recursive dependencies for " + result_string + "...", 0)
+            update_progress(
+                "Getting recursive dependencies for " + result_string + "...", 0)
         # [487521, 487524, 487530, 487554,...
     with tqdm(total=len(filtered_builds), disable=not progress_bar_enabled, desc=progress_bar_desc, unit="builds") as pbar:
         for build in filtered_builds:
@@ -104,12 +117,17 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
             input_string = out_path
             # Removing "/nix/store" from the beginning of the string
             input_string = input_string[len("/nix/store/"):]
+
+            if cancellable and retrieve_and_check_cancel():
+                return False
+
             traverse_jobset_recursive(
-                hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, 0, visited)
+                hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, 0, visited, unique_packages_enabled, fowfol, gigmi)
             pbar.update(1)
             if progress_bar_enabled:
-                if not jobs: 
-                    update_progress("Getting recursive dependencies for all jobs...", 100*pbar.n/len(filtered_builds))
+                if not jobs:
+                    update_progress(
+                        "Getting recursive dependencies for all jobs...", 100*pbar.n/len(filtered_builds))
                 else:
                     if len(jobs) == 1:
                         result_string = jobs[0]
@@ -119,8 +137,13 @@ def traverse_jobset(hydra, update_progress, project_name, jobset, func, recursiv
                         # Adding 'and' before the last element
                         result_string += ', and ' + jobs[-1]
 
-                    update_progress("Getting recursive dependencies for " + result_string + "...", 100*pbar.n/len(filtered_builds))
+                    update_progress("Getting recursive dependencies for " +
+                                    result_string + "...", 100*pbar.n/len(filtered_builds))
 
+            if cancellable and retrieve_and_check_cancel():
+                return False
+
+    return True
     # print(f"{my_list}")
 
 
@@ -137,8 +160,11 @@ def check(input_string):
             return False
     return True
 
+def strip_hash(string):
+    return string.split('-', 1)[1]
 
-def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth, visited):
+
+def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth, visited, unique_packages_enabled, fowfol, gigmi):
     # filter by timestamp
     # go through images and make groups based on common
     # if depth > 5:
@@ -160,7 +186,16 @@ def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_ena
         for reference in references:
             if reference not in input_string:
                 # TODO: first part of the AND can be removed
-                if not only_visit_once_enabled or (only_visit_once_enabled and reference not in visited):
+                # only visit a package once (i.e. cpr_base_navigation)
+                if unique_packages_enabled:
+                    if (strip_hash(reference) in fowfol) and (reference not in gigmi):
+                        continue
+                # only visit a store path once (i.e. bc3svx54m6q6xwqy83h3kb2favkn9rlp-cpr_base_navigation)
+                if only_visit_once_enabled:
+                    if reference in visited:
+                        continue
+                    gigmi.add(reference)
+                    fowfol.add(strip_hash(reference))
                     visited.append(reference)
                     traverse_jobset_recursive(
-                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth+1, visited)
+                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth+1, visited, unique_packages_enabled, fowfol, gigmi)

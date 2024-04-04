@@ -6,66 +6,52 @@ from get_sorted_jobsets import get_sorted_jobsets
 from hydra_client import Hydra
 from traverse_jobset import traverse_jobset
 from merge_dicts_with_preference import merge_dicts_with_preference
-import json
 from tqdm import tqdm
+from job_whitelist import job_whitelist
 
 
-def get_recursive_dependencies(hydra, update_progress, project_name, jobset, traverse_jobset, recursive_mode_enabled=False, exponential_back_off_enabled=False, only_visit_once_enabled=True, progress_bar_enabled=False, progress_bar_desc="Default progress bar desc", jobs=[]):
-    sorted_jobsets = get_sorted_jobsets(hydra, project_name)
-
-    # jobset = sorted_jobsets[-2]
+def get_recursive_dependencies(hydra, update_progress, report_error, project_name, jobset, traverse_jobset, recursive_mode_enabled=False, exponential_back_off_enabled=False, only_visit_once_enabled=True, progress_bar_enabled=False, progress_bar_desc="Default progress bar desc", jobs=[], unique_packages_enabled=False, fowfol=set(), gigmi=set()):
 
     recursive_dependencies_dict = {}
 
-    if jobs:
-        # progress = {'task': 'getting recursive dependencies...', 'progress': 0}
-        # # Serialize JSON to bytes before yielding
-        # yield json.dumps(progress) + '\n'
-        with tqdm(total=len(jobs), disable=not progress_bar_enabled, desc=progress_bar_desc, unit="builds") as pbar:
-            for job in jobs:
-                if (jobset, job) in get_recursive_dependencies_cache:
-                    recursive_dependencies_dict = merge_dicts_with_preference(
-                        get_recursive_dependencies_cache[(jobset, job)], recursive_dependencies_dict)
-                else:
-                    _recursive_dependencies_dict = {}
-                    traverse_jobset(hydra, update_progress, project_name, jobset,
-                                    lambda job, raw_data: _get_recursive_dependencies(hydra,
-                                                                                    raw_data,
-                                                                                    _recursive_dependencies_dict), recursive_mode_enabled=True, only_visit_once_enabled=True, progress_bar_enabled=True, whitelist_enabled=True, progress_bar_desc="Getting recursive dependencies:", jobs=[job])
-                    get_recursive_dependencies_cache[(
-                        jobset, job)] = _recursive_dependencies_dict
-                    # print(f"{jobs}, {job}, len(_recursive_dependencies_dict): {len(_recursive_dependencies_dict)}")
-                    recursive_dependencies_dict = merge_dicts_with_preference(
-                        recursive_dependencies_dict, _recursive_dependencies_dict)
-                    # print(f"{jobs}, {job}, len(recursive_dependencies_dict): {len(recursive_dependencies_dict)}")
-                pbar.update(1)
-                # progress = {'task': 'getting recursive dependencies...', 'progress': round(pbar.n/len(jobs)*100)}
-                # # Serialize JSON to bytes before yielding
-                # yield json.dumps(progress) + '\n'
-            return recursive_dependencies_dict
-    elif (jobset) in get_recursive_dependencies_cache:
-        test = get_recursive_dependencies_cache[jobset]
-        for key in test:
-            if "appliance_proxy" in key:
-                test.remove(key)
-        # for jobset in get_recursive_dependencies_cache:
-        #     print
-        return test
+    if not jobs:
+        jobs = job_whitelist
 
-    traverse_jobset(hydra, update_progress, project_name, jobset,
-                    lambda job, raw_data: _get_recursive_dependencies(hydra,
-                                                                      raw_data,
-                                                                      recursive_dependencies_dict), recursive_mode_enabled=True, only_visit_once_enabled=True, progress_bar_enabled=True, whitelist_enabled=True, progress_bar_desc="Getting recursive dependencies:")
+    # if jobs:
+    with tqdm(total=len(jobs), disable=not progress_bar_enabled, desc=progress_bar_desc, unit="builds") as pbar:
+        for job in jobs:
+            if False and (jobset, job, unique_packages_enabled) in get_recursive_dependencies_cache:
+                recursive_dependencies_dict = merge_dicts_with_preference(
+                    get_recursive_dependencies_cache[(jobset, job, unique_packages_enabled)], recursive_dependencies_dict)
+            else:
+                _recursive_dependencies_dict = {}
+                traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
+                                lambda job, raw_data: _get_recursive_dependencies(hydra,
+                                                                                raw_data,
+                                                                                _recursive_dependencies_dict), recursive_mode_enabled=True, only_visit_once_enabled=True, progress_bar_enabled=True, whitelist_enabled=True, progress_bar_desc="Getting recursive dependencies:", jobs=[job], cancellable=True, unique_packages_enabled=unique_packages_enabled, fowfol=fowfol, gigmi=gigmi)
+                get_recursive_dependencies_cache[(
+                    jobset, job, unique_packages_enabled)] = _recursive_dependencies_dict
+                recursive_dependencies_dict = merge_dicts_with_preference(
+                    recursive_dependencies_dict, _recursive_dependencies_dict)
+            pbar.update(1)
+        return recursive_dependencies_dict
+    # elif (jobset) in get_recursive_dependencies_cache:
+    #     return get_recursive_dependencies_cache[jobset]
 
-    get_recursive_dependencies_cache[jobset] = recursive_dependencies_dict
-    return recursive_dependencies_dict
+    # traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
+    #                 lambda job, raw_data: _get_recursive_dependencies(hydra,
+    #                                                                   raw_data,
+    #                                                                   recursive_dependencies_dict), recursive_mode_enabled=True, only_visit_once_enabled=True, progress_bar_enabled=True, whitelist_enabled=True, progress_bar_desc="Getting recursive dependencies:", cancellable=True)
+
+    # get_recursive_dependencies_cache[jobset] = recursive_dependencies_dict
+    # return recursive_dependencies_dict
 
 
 def _get_recursive_dependencies(hydra, raw_data, recursive_dependencies_dict):
     store_path = extract_section(raw_data=raw_data, keyword="StorePath")[0]
     result = store_path.split("/nix/store/")[1]
 
-    if result in _get_recursive_dependencies_cache:
+    if False and result in _get_recursive_dependencies_cache:
         recursive_dependencies_dict[result] = _get_recursive_dependencies_cache[result]
         # print(f"{result}, {len(recursive_dependencies_dict[result])}")
     else:
@@ -88,12 +74,15 @@ def __get_recursive_dependencies(hydra, package, depth=0, recursive_dependencies
         return (None)
 
     # if package in _get_recursive_dependencies_cache:
+
     #     return _get_recursive_dependencies_cache[package]
     (references, _) = get_references_and_file_size_from_store_path(hydra, package)
     count = 0
     for child in references:
         count = count + 1
         if child != package:
+            if "roscpp" in child:
+                print(f"package={package}")
             if child not in recursive_dependencies:
                 recursive_dependencies.append(child)
                 __get_recursive_dependencies(

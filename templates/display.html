@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Container Layer Viewer</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Some custom styles */
+    .container-card {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Container Layer Viewer</h1>
+    <div class="form-group">
+      <label for="containerSelect">Select Container:</label>
+      <select id="containerSelect" class="form-control">
+        {% for container in container_data %}
+        <option value="{{ container }}">{{ container }}</option>
+        {% endfor %}
+        <!-- Add more options as needed -->
+      </select>
+    </div>
+
+    <!-- Container Layers Display -->
+    <div id="containerLayers"></div>
+  </div>
+
+  <!-- Bootstrap JS and jQuery -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  
+  <script>
+    // Access container data passed from Flask
+    const containerData = {{ container_data | tojson }};
+  
+    // Function to update the layer display based on selected container
+    function updateLayers(container) {
+      const layers = containerData[container];
+      const containerLayers = document.getElementById('containerLayers');
+      containerLayers.innerHTML = '';
+      layers.forEach(layer => {
+        containerLayers.innerHTML += `
+          <div class="card container-card">
+            <div class="card-body">
+              <h5 class="card-title">${layer.layer}</h5>
+              <p class="card-text">Packages: ${layer.packages.join(', ')}</p>
+              <p class="card-text">New Data: ${layer.newData}</p>
+              <p class="card-text">New Data: ${layer.accountedForPackages}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+  
+    // Event listener for container select change
+    document.getElementById('containerSelect').addEventListener('change', function() {
+      const selectedContainer = this.value;
+      updateLayers(selectedContainer);
+    });
+  
+    // Initial update on page load
+    updateLayers(document.getElementById('containerSelect').value);
+  </script>
+</body>
+</html>

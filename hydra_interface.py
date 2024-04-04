@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, jsonify
+from threading import Thread
+import time
+from flask import Flask, render_template, request, jsonify, url_for
 from flask_socketio import SocketIO, emit
 from hydra_client import Hydra
 import dependency_analyzer
@@ -15,14 +17,13 @@ from new_calculate_entropy import get_cached_or_fetch_store_path_entropy_dict
 from cache_directories import *
 from get_sorted_jobsets import get_sorted_jobsets
 from generate_layers import generate_layers
+from update_file_variable_value import update_file_variable_value
 
 # TODO:
 # - Clear caches button
 
 app = Flask(__name__)
 
-import time
-from threading import Thread
 
 # hydra config
 hydra_url = "http://hydra.clearpath.ai/"
@@ -38,38 +39,168 @@ def simulate_progress():
         time.sleep(0.1)  # Simulate a delay
         socketio.emit('progress', {'progress': i}, namespace='/test')
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
     print('Client connected')
     emit('message', {'data': 'Connected'})
 
+
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
     print('Client disconnected')
 
+
+@socketio.on('proceed', namespace='/test')
+def proceed():
+   update_file_variable_value('proceed', True)
+
+
+@socketio.on('cancel', namespace='/test')
+def cancel():
+    update_file_variable_value('cancel', True)
+
+@app.route('/column1')
+def column1():
+    return render_template('column1.html')
+
+@app.route('/column2')
+def column2():
+    return render_template('column2.html')
+
+@app.route('/column3')
+def column3():
+    return render_template('column3.html')
+
+@app.route('/display/<timestamp>')
+def display_dict(timestamp):
+    print(f"display_dict")
+    # Convert timestamp to human-readable format
+    human_readable_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(timestamp)))
+
+    # Construct the file path
+    file_path = str(timestamp) + ".json"
+
+    try:
+        # Open the file in read mode
+        with open(file_path, "r") as file:
+            # Read the contents of the file
+            file_content = file.read()
+
+            # Check if the file is empty
+            if len(file_content) == 0:
+                return render_template('still_generating.html')
+            else:
+                # Load the JSON content
+                loaded_dict = json.loads(file_content)
+    except FileNotFoundError:
+        print("File not found:", file_path)
+        return render_template('display.html', data=[], timestamp=human_readable_time)
+    except json.JSONDecodeError:
+        print("Invalid JSON format in file:", file_path)
+    except PermissionError:
+        print("Permission denied to open file:", file_path)
+    except Exception as e:
+        print("An error occurred:", e)
+
+   # Define your container data as a Flask variable
+    container_data = {
+    'container1': [
+        {'layer': 'Layer 1', 'packages': ['Package A', 'Package B'], 'newData': '10GB'},
+        {'layer': 'Layer 2', 'packages': ['Package C', 'Package D'], 'newData': '5GB'}
+    ],
+    'container2': [
+        {'layer': 'Layer 1', 'packages': ['Package X', 'Package Y'], 'newData': '8GB'},
+        {'layer': 'Layer 2', 'packages': ['Package Z'], 'newData': '3GB'}
+    ]
+    # Add more containers and their layers as needed
+    }
+
+    # Generate a new endpoint based on the timestamp
+
+    print(loaded_dict)
+ 
+    
+    # Render the template with the data and newly generated endpoint
+    return render_template('display.html', container_data=loaded_dict)
+
+
 @socketio.on('start_progress', namespace='/test')
 def start_progress(data):
     # Unpack parameters from the data dictionary
-    number_of_layers = data.get('param1')
-    not_sure = data.get('param2')
-    print('progress started')
+    maximum_layer_recursive_file_size = data.get('maxmimumLayerRecursiveFileSize')
+    coverage_threshold_mode_enabled = data.get('coverageThresholdModeEnabled')
+    coverage_threshold = data.get('coverageThreshold')
+    package_count_mode_enabled = data.get('packageCountModeEnabled')
+    package_count = data.get('packageCount')
+    
+
+    update_file_variable_value('cancel', False)
 
     def update_progress(task, progress):
-        socketio.emit('progress', {'task': task, 'progress': round(progress)}, namespace='/test')
+        socketio.emit(
+            'progress', {'task': task, 'progress': round(progress)}, namespace='/test')
+        
+    def update_layer_progress(progress):
+        # print(f"progress={progress}")
+        socketio.emit(
+            'layer_progress', progress, namespace='/test')
 
+    def report_error(error):
+        socketio.emit('error', {error}, namespace='/test')
 
-    socketio.emit('result', generate_layers(hydra, update_progress, number_of_layers, not_sure), namespace='/test') 
-    # Start a new thread for simulating progress
-    # thread = Thread(target=simulate_progress)
-    # thread.start()
+    def send_layer(layer):
+        # print(f"layer: {layer}")
+        # json_data_to_send = json.dumps(layer)
+        socketio.emit('result', layer, namespace='/test')
+
+    current_timestamp = int(time.time())
+
+    with open(str(current_timestamp) + ".json", "w") as file:
+        pass
+
+    socketio.emit('timestamp', current_timestamp, namespace='/test')
+
+    answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, maximum_layer_recursive_file_size,
+                    coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count)
+
+    # new_dict = {}
+    # for combination, is_creating_zero_entropy_layers, i in answer:
+    #     key = (combination, is_creating_zero_entropy_layers, i)
+    #     new_dict[str(key)] = answer[key]
+    #     new_dict[str(key)]['packages'] = list(answer[key]['packages']) 
+    #     new_dict[str(key)]['combination'] = combination
+    #     new_dict[str(key)]['is_creating_zero_entropy_layers'] = is_creating_zero_entropy_layers
+
+    
+    # Write dictionary to a JSON file
+    with open(str(current_timestamp) + ".json", "w") as file:
+        json.dump(answer, file)
+
+import sys
 
 if __name__ == '__main__':
-        # app.run(debug=True, )
-    socketio.run(app, port=5001, debug=True)
+    # app.run(debug=True, )
+        # Check if two command line arguments are provided
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <integer_value> <true|false>")
+        sys.exit(1)
+
+    # Extract the command line arguments
+    try:
+        int_value = int(sys.argv[1])
+    except ValueError:
+        print("First argument must be an integer")
+        sys.exit(1)
+
+    bool_value = sys.argv[2].lower() == "true"
+
+    socketio.run(app, host='0.0.0.0', port=int_value, debug=bool_value)
 
 
 # Create a route to handle the AJAX request
@@ -355,8 +486,8 @@ def main():
     # generate_layers(hydra)
     pass
 
-
 if __name__ == '__main__':
     main()
-    app.run(debug=True, port=5001)
+
+
     # app.run(host='0.0.0.0', port=5000, debug=False)

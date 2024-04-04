@@ -29,3 +29,20 @@ dict2 = {'a': {'x': 5, 'y': 6}, 'c': {'x': 7, 'y': 8}}
 
 # result = elementwise_sum(dict1, dict2)
 # print(result)
+
+# def sum_2d_dicts_of_dicts(dict1, dict2):
+#     result = {}
+    
+#     # Iterate over rows (outer keys)
+#     for row_key in dict1.keys() | dict2.keys():
+#         # Initialize row in result dictionary
+#         result[row_key] = {}
+        
+#         # Iterate over columns (inner keys)
+#         for col_key in dict1.get(row_key, {}).keys() | dict2.get(row_key, {}).keys():
+#             # Sum corresponding values if present in both dictionaries
+#             value1 = dict1.get(row_key, {}).get(col_key, 0)
+#             value2 = dict2.get(row_key, {}).get(col_key, 0)
+#             result[row_key][col_key] = value1 + value2
+    
+#     return result

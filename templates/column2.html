@@ -2,8 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Top N Store Paths - Landing Page</title>
-
+    <title>Column 2</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- style -->
@@ -18,24 +17,34 @@
             font-family: Arial, sans-serif;
         }
 
-        .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 50px;
+        .header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+            transition: all 0.3s ease;
         }
 
-        .landing-button {
-            margin: 10px;
+        .content {
+            padding: 10px;
         }
     </style>
 </head>
 
 <body>
-    <div class="button-container">
-        <a class="landing-button btn btn-primary" href="/column1">Column 1</a>
-        <a class="landing-button btn btn-primary" href="/column2">Compare</a>
-        <a class="landing-button btn btn-primary" href="/column3">Layers</a>
+    <div class="header" onclick="toggleColumn('column2')">Compare</div>
+    <div class="content">
+        <!-- Column 2 content goes here -->
+        {% include 'comparison_tool.html' %}
     </div>
+
+    <script>
+        function toggleColumn(columnId) {
+            const column = document.getElementById(columnId);
+            column.classList.toggle('closed');
+        }
+    </script>
 </body>
 
 </html>

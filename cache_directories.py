@@ -34,6 +34,7 @@ get_recursive_dependencies_cache_directory = "cache/get_recursive_dependencies_c
 search_for_dependency_cache_directory = "cache/search_for_dependency_cache_directory"
 entropy_tree_cache_directory = "cache/entropy_tree_cache_directory"
 _generate_layers_cache_directory = "cache/_generate_layers_cache_directory"
+store_path_file_size_cache_directory = "cache/store_path_file_size_cache_directory"
 cache = Cache(my_cache_directory)
 dependency_weight_cache = Cache(dependency_weight_cache_directory)
 first_sort_cache = Cache(first_sort_cache_directory)
@@ -68,6 +69,7 @@ get_recursive_dependencies_cache = Cache(get_recursive_dependencies_cache_direct
 search_for_dependency_cache = Cache(search_for_dependency_cache_directory)
 entropy_tree_cache = Cache(entropy_tree_cache_directory)
 _generate_layers_cache = Cache(_generate_layers_cache_directory)
+store_path_file_size_cache = Cache(store_path_file_size_cache_directory)
 
 # Define __all__ to include all names
 __all__ = [
@@ -104,5 +106,6 @@ __all__ = [
     "get_recursive_dependencies_cache",
     "search_for_dependency_cache",
     "entropy_tree_cache",
-    "_generate_layers_cache"
+    "_generate_layers_cache",
+    "store_path_file_size_cache"
 ]

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Column 3</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+     <!-- style -->
+     <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+     <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <style>
+ 
+         .myProgress {
+             width: 100%;
+             background-color: #ddd;
+         }
+ 
+         .myBar {
+             width: 10%;
+             height: 30px;
+             background-color: #04AA6D;
+             text-align: center;
+             line-height: 30px;
+             color: white;
+         }
+ 
+         .error-message {
+             color: #ff0000;
+             /* Red color for error */
+             font-weight: bold;
+             font-size: 18px;
+         }
+     </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="mt-5">
+            <h1 class="display-4">Layers</h1>
+            <!-- <p class="lead">Configure your layers here</p> -->
+        </header>
+
+        <form id="myLayerForm">
+            <div>
+                <div class="container mt-5">
+                    <form>
+                      <div class="form-group">
+                        <label for="valueSelector">Select a maximum layer size:</label>
+                        <input type="range" class="form-control-range" id="valueSelector" value="800" min="50" max="2000">
+                      </div>
+                      <div class="form-group">
+                        <label for="selectedValue">Selected Value (MB):</label>
+                        <output class="form-control" id="selectedValue">800</output>
+                      </div>
+                    </form>
+                  </div>
+                
+                <!-- why is this div here? -->
+                <div style="margin-bottom: 20px;">
+                    <!-- Green go button -->
+                    <button type="button" class="btn btn-success" id="generateLayersBtn" onclick="generateLayers()">Generate
+                        Layers</button>
+
+                    <!-- Orange proceed button -->
+                    <button style="display: none;" type="button" class="btn btn-warning" id="proceedBtn"
+                        onclick="test()">Proceed Without Remaining
+                        Jobsets</button>
+
+                    <!-- Red cancel button -->
+                    <button style="display: none;" type="button" id="cancelBtn" class="btn btn-danger"
+                        onclick="cancel()">Cancel</button>
+                    {% include 'layers_config_panel.html' %}
+
+                    {% include 'layer_list_popup.html' %}
+
+                </div>
+
+                <div>
+
+                    <!-- <button type="button" class="btn btn-secondary">
+                            <i class="fas fa-cog"></i> Config
+                        </button> -->
+
+                    <h1 style="display: none;" id="myTask"></h1>
+                    <div class="myProgress" style="display: none;" id="myProgress">
+                        <div class="myBar" id="myBar"></div>
+                    </div>
+
+                </div>
+
+                <div>
+                    <p id="layerInfo"></p>
+                    <p id="endPointInfo"></p>
+                    <p id="newPackageInfo"></p>
+
+                </div>
+
+                <div id="accountedForFileSizeProgressBars">
+
+                </div>
+                <!-- <h1 style="display: block;" id="layerDownloadInfo"></h1> -->
+
+                <div style="display: none;" id="errorMessage" class="error-message">
+                    <p>An error has occurred. Please try again later.</p>
+                </div>
+
+            </div>
+        </form>
+        <!-- <button class="generateLayersButton" style="display: inline;" onclick="generateLayers()">Generate Layers</button> -->
+    </div>
+    </div>
+
+    <script>
+        // Update the displayed value when the range input changes
+        document.getElementById('valueSelector').addEventListener('input', function() {
+          document.getElementById('selectedValue').textContent = this.value;
+        });
+      </script>
+
+    <script src="{{ url_for('static', filename='scripts/post_data.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/update_layers.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="{{ url_for('static', filename='scripts/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/generate_layers.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+</body>
+
+</html>

@@ -11,6 +11,7 @@ from hydra_client import Hydra
 from get_sorted_jobsets import get_sorted_jobsets
 from tqdm import tqdm
 from get_best_partial_jobsets_cache_key import get_best_partial_jobsets_cache_key
+from update_file_variable_value import update_file_variable_value
 
 # Exponential backoff parameters
 max_retries = 2
@@ -296,11 +297,9 @@ def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_wei
 #     cache_key = tuple(sorted_jobsets)
 #     cache[cache_key] = result_dicts
 #     return result_dicts
-
-def general_cache_function(hydra, update_progress, project_name, traverse_jobset, cache, update_func, recursive_mode_enabled, exponential_back_off_enabled, progress_bar_enabled=True, whitelist_enabled=False, progress_bar_desc="Default progress bar desc", jobsets=None, *args):
+def general_cache_function(hydra, update_progress, report_error, project_name, traverse_jobset, cache, update_func, recursive_mode_enabled, exponential_back_off_enabled, progress_bar_enabled=True, whitelist_enabled=False, progress_bar_desc="Default progress bar desc", jobsets=None, *args):
 
     result_dicts = [{} for _ in args]
-
 
     if jobsets:
         sorted_jobsets = jobsets
@@ -323,15 +322,21 @@ def general_cache_function(hydra, update_progress, project_name, traverse_jobset
         if partial_cache_key in cache:
             (result_dicts, visited) = cache[partial_cache_key]
 
+            return result_dicts
+
             # return result_dicts
             # result_dicts = cache[partial_cache_key]
     with tqdm(initial=0 if best_list is None else len(best_list), disable=not progress_bar_enabled, total=len(sorted_jobsets), desc=progress_bar_desc, unit="jobsets") as pbar:
         update_progress(progress_bar_desc+"...", 100*pbar.n/len(sorted_jobsets))
+        update_file_variable_value('proceed', False)
         for jobset in remaining_jobsets:
             _result_dicts = [{} for _ in args]
-            traverse_jobset(hydra, update_progress, project_name, jobset,
+            if not traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
                             lambda job, raw_data: update_func(
-                                raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited=visited)
+                                raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited=visited, cancellable=True):
+                update_progress("", 0)
+                print(f"Proceeding without remaining {len(sorted_jobsets)-pbar.n} jobsets...")
+                return result_dicts
             processed_jobsets.append(jobset)
 
             # Using enumerate to iterate through the list with index
@@ -343,6 +348,7 @@ def general_cache_function(hydra, update_progress, project_name, traverse_jobset
             pbar.update(1)
             update_progress(progress_bar_desc+"...", 100*pbar.n/len(sorted_jobsets))
 
+    update_progress("", 0)
     return result_dicts
 
 
