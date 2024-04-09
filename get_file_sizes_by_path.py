@@ -13,6 +13,8 @@ def get_file_sizes_by_path(all_packages, hydra, recursive_dependencies_dict):
             package_file_size[item.split(
                 '-', 1)[1]] = file_size
             unique_packge_world_file_size += file_size
+        # if not recursive_dependencies_dict[item]:
+        #     continue
         for p in recursive_dependencies_dict[item]:
             file_size = get_file_size_from_store_path(
                 hydra, p)

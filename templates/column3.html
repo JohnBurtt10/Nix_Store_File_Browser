@@ -6,62 +6,107 @@
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 
-     <!-- style -->
-     <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
-     <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <style>
- 
-         .myProgress {
-             width: 100%;
-             background-color: #ddd;
-         }
- 
-         .myBar {
-             width: 10%;
-             height: 30px;
-             background-color: #04AA6D;
-             text-align: center;
-             line-height: 30px;
-             color: white;
-         }
- 
-         .error-message {
-             color: #ff0000;
-             /* Red color for error */
-             font-weight: bold;
-             font-size: 18px;
-         }
-     </style>
+    <!-- style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .myProgress {
+            width: 100%;
+            background-color: #ddd;
+        }
+
+        .myBar {
+            width: 10%;
+            height: 30px;
+            background-color: #04AA6D;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+        }
+
+        .error-message {
+            color: #ff0000;
+            /* Red color for error */
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Documentation Panel Styles */
+        #documentation-panel {
+            position: fixed;
+            top: 50%;
+            right: -400px;
+            /* Initially hidden */
+            transform: translateY(-50%);
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-left: 1px solid #ccc;
+            width: 300px;
+            height: 80%;
+            overflow-y: auto;
+            z-index: 999;
+            transition: right 0.3s ease;
+        }
+
+        #documentation-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+    </style>
 </head>
 
 <body>
     <div class="container">
         <header class="mt-5">
-            <h1 class="display-4">Layers</h1>
+            <h1 class="display-4">Layer Generator</h1>
             <!-- <p class="lead">Configure your layers here</p> -->
         </header>
+
+        <!-- Documentation Toggle Button -->
+        <div id="documentation-toggle">Documentation</div>
+
+        <!-- Include Documentation Panel -->
+        {% include 'layer_generator_documentation_panel.html' %}
 
         <form id="myLayerForm">
             <div>
                 <div class="container mt-5">
                     <form>
-                      <div class="form-group">
-                        <label for="valueSelector">Select a maximum layer size:</label>
-                        <input type="range" class="form-control-range" id="valueSelector" value="800" min="50" max="2000">
-                      </div>
-                      <div class="form-group">
-                        <label for="selectedValue">Selected Value (MB):</label>
-                        <output class="form-control" id="selectedValue">800</output>
-                      </div>
+                        <div class="form-group">
+                            <label for="minimumValueSelector">Select a minimum layer size:</label>
+                            <input type="range" class="form-control-range" id="minimumValueSelector" value="40" min="0"
+                                max="2000">
+                            <p>Minimum (MB): <span id="minValue">40</span></p>
+                        </div>
+                        <!-- <div class="form-group">
+                        <label for="selectedMinimumValue">Selected Minimum Value (MB):</label>
+                        <output class="form-control" id="selectedMinimumValue">800</output>
+                      </div> -->
+
+                        <div class="form-group">
+                            <label for="maximumValueSelector">Select a maximum layer size:</label>
+                            <input type="range" class="form-control-range" id="maximumValueSelector" value="1600"
+                                min="50" max="2000">
+                            <p>Maximum (MB): <span id="maxValue">1600</span></p>
+                        </div>
+                        <!-- <div class="form-group">
+                        <label for="selectedMaximumValue">Selected Maximum Value (MB):</label>
+                        <output class="form-control" id="selectedMaximumValue">800</output>
+                      </div> -->
+
                     </form>
-                  </div>
-                
+                </div>
+
                 <!-- why is this div here? -->
                 <div style="margin-bottom: 20px;">
                     <!-- Green go button -->
-                    <button type="button" class="btn btn-success" id="generateLayersBtn" onclick="generateLayers()">Generate
+                    <button type="button" class="btn btn-success" id="generateLayersBtn"
+                        onclick="generateLayers()">Generate
                         Layers</button>
 
                     <!-- Orange proceed button -->
@@ -72,6 +117,7 @@
                     <!-- Red cancel button -->
                     <button style="display: none;" type="button" id="cancelBtn" class="btn btn-danger"
                         onclick="cancel()">Cancel</button>
+
                     {% include 'layers_config_panel.html' %}
 
                     {% include 'layer_list_popup.html' %}
@@ -115,10 +161,13 @@
 
     <script>
         // Update the displayed value when the range input changes
-        document.getElementById('valueSelector').addEventListener('input', function() {
-          document.getElementById('selectedValue').textContent = this.value;
+        document.getElementById('minimumValueSelector').addEventListener('input', function () {
+            document.getElementById('minValue').textContent = this.value;
         });
-      </script>
+        document.getElementById('maximumValueSelector').addEventListener('input', function () {
+            document.getElementById('maxValue').textContent = this.value;
+        });
+    </script>
 
     <script src="{{ url_for('static', filename='scripts/post_data.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/update_layers.js') }}"></script>
@@ -126,6 +175,18 @@
     <script src="{{ url_for('static', filename='scripts/script.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/generate_layers.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+
+    <script>
+        // Toggle documentation panel visibility
+        document.getElementById('documentation-toggle').addEventListener('click', function () {
+            document.getElementById('documentation-panel').style.right = '20px';
+        });
+
+        // Close documentation panel
+        document.getElementById('close-documentation').addEventListener('click', function () {
+            document.getElementById('documentation-panel').style.right = '-400px';
+        });
+    </script>
 </body>
 
 </html>

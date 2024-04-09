@@ -11,12 +11,8 @@
     /* Optional: Add some spacing between paragraphs */
 }
 
-.close-button {
-    background-color: white;
-    /* Red background color */
-    border: none;
-    /* No border */
-    cursor: pointer;
-    /* Change cursor to pointer on hover */
+.other-close-button {
+    bottom: 50px;
+    color: #ff0000;
 
 }

@@ -1,16 +1,13 @@
 import copy
-from calculate_dependency_weight import calculate_dependency_weight
 from calculate_overhead import calculate_overhead
 from update_stuff import update_stuff
 from get_file_size_from_store_path import get_file_size_from_store_path
 from cache_directories import *
-import datetime
 from hydra_client import Hydra
 from new_get_recursive_dependencies import get_recursive_dependencies
 from traverse_jobset import traverse_jobset
 from new_calculate_entropy import get_cached_or_fetch_store_path_entropy_dict
 from topological_sort import topological_sort_until_all_packages
-import re
 import cache_utils
 from sum_dicts import sum_dicts_of_lists
 from job_whitelist import job_whitelist
@@ -20,8 +17,6 @@ from layering_sanity_check import layering_sanity_check
 from get_sorted_jobsets import get_sorted_jobsets
 import pickle
 from get_file_sizes_by_path import get_file_sizes_by_path
-import write_to_file
-
 
 def retrieve_and_check_cancel():
     return False
@@ -48,34 +43,39 @@ def split_dict_by_value(my_dict, entropy_dict):
 
 def get_recursive_dependency_weight(package, recursive_dependencies_dict, package_file_size):
     recursive_dependency_weight = 0
-    recursive_dependency_weight += package_file_size[package]
-    for item in recursive_dependencies_dict[package]:
-        recursive_dependency_weight += package_file_size[item]
+    recursive_dependency_weight += package_file_size.get(package, 0)
+    for item in recursive_dependencies_dict.get(package, []):
+        recursive_dependency_weight += package_file_size.get(item, 0)
 
     return recursive_dependency_weight
 
+def get_true_recursive_file_size(hydra, layer, recursive_dependencies_dict, package_file_size):
+    true_recursive_file_size = 0
 
-def generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled=False, coverage_threshold=0, package_count_mode_enabled=False, package_count=0, project_name="v2-34-devel"):
+    for package in layer['packages']:
+        true_recursive_file_size +=  get_file_size_from_store_path(
+            hydra, package)
+        for item in recursive_dependencies_dict[package]:
+            true_recursive_file_size += get_file_size_from_store_path(
+            hydra, item)
+    return true_recursive_file_size
 
 
-    # zzz has demo version
-    if False and ("generate_layers", maximum_layer_recursive_file_size) in cache:
-        answer = cache[("generate_layers", maximum_layer_recursive_file_size)]
-    else:
-        answer = _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, maximum_layer_recursive_file_size, 
-                                  coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name)
-        cache[("generate_layers", maximum_layer_recursive_file_size)] = answer
-    print(f"answer={answer}")
-
-    # answer = {(('runCommandHook.testrunner.x86_64-linux', 'ottoFmCoreContainer.x86_64-linux', 'ottoFmWebContainer.x86_64-linux', 'simRobot.x86_64-linux', 'simGazeboContainer.x86_64-linux', 'virtualRobotContainer.x86_64-linux', 'testrunnerContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'6hv3k27l4hcd0gvjw14z79g0nqi5sc1i-strategy_management'}, 'accounted_for_packages_file_size': 11599358064, 'average': 0, 'relative_accounted_for': 0.9908182537207992, 'total_recursive_file_size': 1657051152}, (('runCommandHook.testrunner.x86_64-linux', 'ottoFmCoreContainer.x86_64-linux', 'ottoFmWebContainer.x86_64-linux', 'simGazeboContainer.x86_64-linux', 'virtualRobotContainer.x86_64-linux', 'testrunnerContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'ilshpbh8702w6alhjlfxx4jgqgj4rhys-colcon_workspace_hooks'}, 'accounted_for_packages_file_size': 3875465712, 'average': 0, 'relative_accounted_for': 0.35386575380492546, 'total_recursive_file_size': 1502999864}, (('runCommandHook.testrunner.x86_64-linux', 'simRobot.x86_64-linux', 'simGazeboContainer.x86_64-linux', 'virtualRobotContainer.x86_64-linux', 'testrunnerContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'i101xlgcngvqs3wx414ib9sz5rv39prs-map_data_manager'}, 'accounted_for_packages_file_size': 85196560, 'average': 0,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        #    'relative_accounted_for': 0.007133180640771191, 'total_recursive_file_size': 1668293640}, (('runCommandHook.testrunner.x86_64-linux', 'ottoFmCoreContainer.x86_64-linux', 'ottoFmWebContainer.x86_64-linux', 'simGazeboContainer.x86_64-linux', 'testrunnerContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'kijml7s2167p2n7awlzygkjyvncbd5l9-nimbus_rest_publisher'}, 'accounted_for_packages_file_size': 9602182088, 'average': 0, 'relative_accounted_for': 0.8722457626830873, 'total_recursive_file_size': 4237647672}, (('ottoFmCoreContainer.x86_64-linux', 'ottoFmWebContainer.x86_64-linux', 'simGazeboContainer.x86_64-linux', 'virtualRobotContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'n4l6qvia6iya4dqv9dz3yfl6w8fqd3gb-cpr_api_adaptor'}, 'accounted_for_packages_file_size': 11619138160, 'average': 0, 'relative_accounted_for': 0.904464171442364, 'total_recursive_file_size': 5129145264}, (('runCommandHook.testrunner.x86_64-linux', 'ottoFmCoreContainer.x86_64-linux', 'ottoFmWebContainer.x86_64-linux', 'testrunnerContainer.x86_64-linux'), False, 0): {'overhead': 0, 'packages': {'z3xdzkq5npbg8h75lr2p6xln616c2hyd-nimbus_base_serializers'}, 'accounted_for_packages_file_size': 192240320, 'average': 0, 'relative_accounted_for': 0.01998942025564918, 'total_recursive_file_size': 1706777272}}
+def generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled=False, coverage_threshold=0, package_count_mode_enabled=False, package_count=0, project_name="v2-34-devel"):
 
     sorted_jobsets = get_sorted_jobsets(hydra, project_name)
     jobset = sorted_jobsets[0]
 
-    recursive_dependencies_dict = get_recursive_dependencies(
+    # zzz has demo version
+    if ("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size) in cache:
+        answer, recursive_dependencies_dict = cache[("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)]
+    else:
+        recursive_dependencies_dict = get_recursive_dependencies(
             hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True)
-
+        answer, _ = _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, 
+                                  coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name, jobset)
+        cache[("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)] = answer, recursive_dependencies_dict
+    # print(f"answer={answer}")
     job_layer_dict = {}
 
     # TODO: merge layers?
@@ -90,30 +90,47 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
     containerData = {}
     #cppcheck total file size
 
-    if (jobset, "gwgwfg") in cache:
+    if False and (jobset, "gwgwfg") in cache:
 
         package_file_size, unique_packge_world_file_size = cache[(
             jobset, "gwgwfg")]
 
     else:
-        recursive_dependencies_dict = get_recursive_dependencies(
-            hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True)
         package_file_size, unique_packge_world_file_size = get_file_sizes_by_path(
             recursive_dependencies_dict, hydra, recursive_dependencies_dict)
 
         cache[(jobset, "gwgwfg")] = package_file_size, unique_packge_world_file_size
 
     for job, layers in job_layer_dict.items():
-        print(f"job={job}")
+        # if job != "ottoFmCoreContainer.x86_64-linux":
+        #     continue
+        # print(f"job={job}")
         # Sorting the dictionary of dictionaries based on 'total_recursive_file_size'
-        sorted_data = sorted(layers, key=lambda x: (not x['is_creating_zero_entropy_layers'], x['total_recursive_file_size']))
+        # 0 has the lowest total_recursive_file_size since we want to create a layer with stuff at the bottom of the tree first then create
+        # the next layer based on everything but what's included in layer 0 and so on...
+        sorted_data = sorted(layers, key=lambda x: get_true_recursive_file_size(hydra, x, recursive_dependencies_dict, package_file_size))
         fioq2wf = set()
+        ggg = set ()
         containerData[job] = []
+        count = 0
+        thing = {}
+        other_thing = {}
+
+        other_thing[0] = {'smallest': 0}
+
         for index, tiwrio in enumerate(sorted_data):
+            tiwrio['total_recursive_file_size'] = get_true_recursive_file_size(hydra, tiwrio, recursive_dependencies_dict, package_file_size)
             first_item = next(iter(tiwrio['packages']))
             packages = set(recursive_dependencies_dict[first_item]).union({first_item})
             new = packages.difference(fioq2wf)
             fioq2wf = packages.union(fioq2wf)
+            if not packages.issubset((ggg.union(new))):
+                ggg = fioq2wf
+                other_thing[count]['largest'] = index-1
+                count += 1
+                other_thing[count] = {}
+                other_thing[count]['smallest'] = index
+            thing[str(tiwrio['packages'])] = count
             sum = 0
             for item in new:
                 sum += get_file_size_from_store_path(hydra, item)
@@ -121,25 +138,44 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
             sorted_accounted_for_packages = sorted(list(new), key=lambda x: get_recursive_dependency_weight(x, recursive_dependencies_dict, package_file_size))
 
+            sorted_accounted_for_packages = [item for item in sorted_accounted_for_packages if "ros" in item]
+
             tiwrio['accounted_for_packages'] = sorted_accounted_for_packages
 
-            print(f"tiwrio={tiwrio}, sum={sum}")
-
             new_data_magnitude = str(round(sum/( 1024 * 1024), 2))
+            
+            tiwrio['new_data_magnitude'] = new_data_magnitude
 
-            containerData[job].append({'layer': 'Layer ' + str(index), 'packages': [first_item], 'newData': new_data_magnitude + 'MB', 'accountedForPackages': sorted_accounted_for_packages})
+            total_recursive_file_size_magnitude = str(round(tiwrio['total_recursive_file_size']/( 1024 * 1024), 2))
 
+            tiwrio['total_recursive_file_size_magnitude'] = total_recursive_file_size_magnitude
+
+        
+        other_thing[count]['largest'] = len(sorted_data)-1
+        
+        for index, tiwrio in enumerate(sorted_data):
+            first_item = next(iter(tiwrio['packages']))
+
+            first_item_file_size = str(round(package_file_size[first_item]/( 1024 * 1024), 2))
+
+            stripped_packages = [strip_hash(
+              item) for item in tiwrio['accounted_for_packages']]
+            
+
+            if other_thing[thing[str(tiwrio['packages'])]]['smallest'] == other_thing[thing[str(tiwrio['packages'])]]['largest']:
+                layer_string = str(other_thing[thing[str(tiwrio['packages'])]]['smallest'])
+            else:
+                layer_string = str(other_thing[thing[str(tiwrio['packages'])]]['smallest']) + '-' + str(other_thing[thing[str(tiwrio['packages'])]]['largest'])
+
+
+            containerData[job].append({'layer': 'Layer ' + layer_string, 'packages': [first_item], 'packageFileSize': first_item_file_size + 'MB', 'newData': tiwrio['new_data_magnitude'] + 'MB', 'accountedForPackages': stripped_packages, 'totalRecursiveFileSize':tiwrio['total_recursive_file_size_magnitude'] + 'MB'})
     
     return containerData
         
         # break
 
 
-def _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name):
-   
-    # return thing
-    sorted_jobsets = get_sorted_jobsets(hydra, project_name)
-    jobset = sorted_jobsets[-2]
+def _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name, jobset):
 
     if True:
         store_path_entropy_dict, fokwfko = get_cached_or_fetch_store_path_entropy_dict(
@@ -156,7 +192,7 @@ def _generate_layers(hydra, update_progress, report_error, send_layer, update_la
 
     return __generate_layers(hydra, update_progress, report_error,
                              send_layer, update_layer_progress,
-                             project_name, jobset, store_path_entropy_dict, fokwfko, maximum_layer_recursive_file_size)
+                             project_name, jobset, store_path_entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)
 
 
 def reduce_package_list(recursive_dependencies_dict, non_zero_entropy_packages):
@@ -406,10 +442,9 @@ def update_relative_accounted_for_dict(is_creating_zero_entropy_layers, recursiv
         # ggg = master_list[(job, is_creating_zero_entropy_layers)]
         ggg = set()
         zero_entropy_packages = master_list[(job, True)]
-        non_zero_entropy_packages = master_list[(job, False)]
-        # print(f"job={job}, len(non_zero_entropy_packages)={len(non_zero_entropy_packages)}")
+        # non_zero_entropy_packages = master_list[(job, False)]
         ggg.update(zero_entropy_packages)
-        ggg.update(non_zero_entropy_packages)
+        # ggg.update(non_zero_entropy_packages)
         total_file_size = 0
         unique_packages = set()
         for item in ggg:
@@ -430,58 +465,57 @@ def update_relative_accounted_for_dict(is_creating_zero_entropy_layers, recursiv
             # print(f"update_relative_accounted_for_dict, job={job}, total_file_size={total_file_size}")
             # y += accounted_for_file_size / \
             #     total_file_size
-            print(
-                f"job:{job} is now {100*accounted_for_file_size/total_file_size}%, {accounted_for_file_size}/{total_file_size} accounted for")
+            # print(
+            #     f"job:{job} is now {100*accounted_for_file_size/total_file_size}%, {accounted_for_file_size}/{total_file_size} accounted for")
         if total_file_size != 0 and accounted_for_file_size/total_file_size < 0.98:
             is_accounted_for_file_size_threshold_satisified = False
 
     # ffpwdfw = 0
     # for thing in recursive_dependencies_dict:
     #     ffpwdfw += len(recursive_dependencies_dict[thing])
-    # print(f"ffpwdfw={ffpwdfw}")
-    for job in job_whitelist:
-        all_job_packages = set()
-        zero_entropy_packages = master_list[(job, True)]
-        non_zero_entropy_packages = master_list[(job, False)]
-        # print(f"job={job}, len(non_zero_entropy_packages)={len(non_zero_entropy_packages)}")
-        all_job_packages.update(zero_entropy_packages)
-        all_job_packages.update(non_zero_entropy_packages)
-        total_file_size = 0
-        zero_entropy_specific_recursive_total_file_size = 0
-        non_zero_entropy_specific_recursive_total_file_size = 0
-        unique_packages = set()
-        for item in zero_entropy_packages:
-            # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
-            # TODO: define combination_package_dict to only have 1 of each package to start with
-            unique_packages.add((strip_hash(item)))
-            for p in recursive_dependencies_dict[item]:
-                unique_packages.add((strip_hash(p)))
-        for item in unique_packages:
-            zero_entropy_specific_recursive_total_file_size += package_file_size[item]
-        unique_packages = set()
-        for item in non_zero_entropy_packages:
-            # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
-            # TODO: define combination_package_dict to only have 1 of each package to start with
-            unique_packages.add((strip_hash(item)))
-            for p in recursive_dependencies_dict[item]:
-                unique_packages.add((strip_hash(p)))
-        for item in unique_packages:
-            non_zero_entropy_specific_recursive_total_file_size += package_file_size[item]
-        unique_packages = set()
-        for item in all_job_packages:
-            # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
-            # TODO: define combination_package_dict to only have 1 of each package to start with
-            unique_packages.add((strip_hash(item)))
-            for p in recursive_dependencies_dict[item]:
-                unique_packages.add((strip_hash(p)))
-        for item in unique_packages:
-            total_file_size += package_file_size[item]
-        accounted_for_file_size = 0
-        for item in accounted_for_packages_in_jobs[job]:
-            accounted_for_file_size += package_file_size[item]
-        # if job in combination and job == "simGazeboContainer.x86_64-linux":
-        #     # print(f"job={job}, len(unique_packages)={len(unique_packages)}, len(accounted_for_packages_in_jobs[{job}]={len(accounted_for_packages_in_jobs[job])}, non zero coverage={accounted_for_file_size/non_zero_entropy_specific_recursive_total_file_size}")
-        #     print(f"job={job}, zero entropy coverage={accounted_for_file_size/zero_entropy_specific_recursive_total_file_size}, non zero coverage={accounted_for_file_size/non_zero_entropy_specific_recursive_total_file_size}, overall coverage={accounted_for_file_size/total_file_size}")
+    # for job in job_whitelist:
+    #     all_job_packages = set()
+    #     zero_entropy_packages = master_list[(job, True)]
+    #     non_zero_entropy_packages = master_list[(job, False)]
+    #     # print(f"job={job}, len(non_zero_entropy_packages)={len(non_zero_entropy_packages)}")
+    #     all_job_packages.update(zero_entropy_packages)
+    #     all_job_packages.update(non_zero_entropy_packages)
+    #     total_file_size = 0
+    #     zero_entropy_specific_recursive_total_file_size = 0
+    #     non_zero_entropy_specific_recursive_total_file_size = 0
+    #     unique_packages = set()
+    #     for item in zero_entropy_packages:
+    #         # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
+    #         # TODO: define combination_package_dict to only have 1 of each package to start with
+    #         unique_packages.add((strip_hash(item)))
+    #         for p in recursive_dependencies_dict[item]:
+    #             unique_packages.add((strip_hash(p)))
+    #     for item in unique_packages:
+    #         zero_entropy_specific_recursive_total_file_size += package_file_size[item]
+    #     unique_packages = set()
+    #     for item in non_zero_entropy_packages:
+    #         # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
+    #         # TODO: define combination_package_dict to only have 1 of each package to start with
+    #         unique_packages.add((strip_hash(item)))
+    #         for p in recursive_dependencies_dict[item]:
+    #             unique_packages.add((strip_hash(p)))
+    #     for item in unique_packages:
+    #         non_zero_entropy_specific_recursive_total_file_size += package_file_size[item]
+    #     unique_packages = set()
+    #     for item in all_job_packages:
+    #         # remove strip_hash from this to fix discrenpcy with accounted_for_file_size
+    #         # TODO: define combination_package_dict to only have 1 of each package to start with
+    #         unique_packages.add((strip_hash(item)))
+    #         for p in recursive_dependencies_dict[item]:
+    #             unique_packages.add((strip_hash(p)))
+    #     for item in unique_packages:
+    #         total_file_size += package_file_size[item]
+    #     accounted_for_file_size = 0
+    #     for item in accounted_for_packages_in_jobs[job]:
+    #         accounted_for_file_size += package_file_size[item]
+    #     if job in combination and job == "simGazeboContainer.x86_64-linux":
+    #         # print(f"job={job}, len(unique_packages)={len(unique_packages)}, len(accounted_for_packages_in_jobs[{job}]={len(accounted_for_packages_in_jobs[job])}, non zero coverage={accounted_for_file_size/non_zero_entropy_specific_recursive_total_file_size}")
+    #         print(f"job={job}, zero entropy coverage={accounted_for_file_size/zero_entropy_specific_recursive_total_file_size} ({accounted_for_file_size/(1024*1024)}/{zero_entropy_specific_recursive_total_file_size/(1024*1024)}), non zero coverage={accounted_for_file_size/non_zero_entropy_specific_recursive_total_file_size}, overall coverage={accounted_for_file_size/total_file_size}")
     return relative_accounted_for_dict, is_accounted_for_file_size_threshold_satisified
 
 
@@ -515,9 +549,12 @@ def limit_recursive_dependencies(recursive_dependencies_dict, limit, package_fil
     for key in recursive_dependencies_dict:
         sum = 0
         _recursive_dependencies_dict[key] = []
+        if sum + package_file_size[key] > limit:
+            continue
+        sum += package_file_size[key]
         for package in recursive_dependencies_dict[key]:
             if sum + package_file_size[package] > limit:
-                continue
+                break
             sum += package_file_size[package]
             _recursive_dependencies_dict[key].append(package)
 
@@ -526,7 +563,7 @@ def limit_recursive_dependencies(recursive_dependencies_dict, limit, package_fil
 
 def __generate_layers(hydra, update_progress, report_error,
                       send_layer, update_layer_progress,
-                      project_name, jobset, store_path_entropy_dict, fokwfko, maximum_layer_recursive_file_size):
+                      project_name, jobset, store_path_entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size):
 
     print(f"__generate_layers()")
 
@@ -538,34 +575,15 @@ def __generate_layers(hydra, update_progress, report_error,
     recursive_added_job = {}
     accounted_for_packages_in_jobs = {}
     combination_packages_dict = {}
-    is_new_package_added = False
     package_file_size = None
     for_loop_flag = False
-    max_layer = 50
 
     fowfol = set()
     gigmi = set()
 
-
-    if (jobset, "gwgwfg") in cache:
-
-        package_file_size, unique_packge_world_file_size = cache[(
-            jobset, "gwgwfg")]
-
-    else:
-        recursive_dependencies_dict = get_recursive_dependencies(
-            hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True)
-        package_file_size, unique_packge_world_file_size = get_file_sizes_by_path(
-            recursive_dependencies_dict, hydra, recursive_dependencies_dict)
-
-        cache[(jobset, "gwgwfg")] = package_file_size, unique_packge_world_file_size
-
     # max_recursive_file_size = unique_packge_world_file_size*0.1
-    print(f"maximum_layer_recursive_file_size={maximum_layer_recursive_file_size}")
-        
-    max_recursive_file_size = maximum_layer_recursive_file_size*1024*1024
-
-    print(f"max_recursive_file_size={max_recursive_file_size/(1024*1024)}MB")
+    # minimum_layer_recursive_file_size_bytes = maximum_layer_recursive_file_size*1024*1024
+    maximum_layer_recursive_file_size_bytes = maximum_layer_recursive_file_size*1024*1024
 
     # updated to reflect accounted for packages
     other_dict = {}
@@ -577,27 +595,40 @@ def __generate_layers(hydra, update_progress, report_error,
     recursive_dependencies_dict = {}
     for job in job_whitelist:
         _recursive_dependencies_dict = get_recursive_dependencies(
-            hydra, update_progress, report_error, project_name, jobset, traverse_jobset, jobs=[job], unique_packages_enabled=True, fowfol=fowfol, gigmi=gigmi)
-        
-        _recursive_dependencies_dict_limited = limit_recursive_dependencies(_recursive_dependencies_dict, max_recursive_file_size, package_file_size)
+            hydra, update_progress, report_error, project_name, jobset, traverse_jobset, jobs=[job], unique_packages_enabled=True, fowfol=fowfol, gigmi=gigmi, maximum_recursive_file_size=maximum_layer_recursive_file_size_bytes)
 
-
-        recursive_dependencies_dict.update(_recursive_dependencies_dict_limited)
+        recursive_dependencies_dict.update(_recursive_dependencies_dict)
         non_zero_entropy_packages, zero_entropy_packages = split_dict_by_value(
-            _recursive_dependencies_dict_limited, store_path_entropy_dict)
+            _recursive_dependencies_dict, store_path_entropy_dict)
 
         master_list[(job, True)] = zero_entropy_packages
         master_list[(job, False)] = non_zero_entropy_packages
-        other_dict[job] = copy.deepcopy(_recursive_dependencies_dict_limited)
+        other_dict[job] = copy.deepcopy(_recursive_dependencies_dict)
 
-    _, weight_key, _, _, _ = cache_utils.get_cached_or_compute_dependency_weight(
-        project_name, jobset, dependency_weight_cache, hydra, calculate_dependency_weight)
+
+    if False and (jobset, "gawsfgqwfg") in cache:
+
+        package_file_size, unique_packge_world_file_size = cache[(
+            jobset, "gawsfgqwfg")]
+
+    else:
+        package_file_size, unique_packge_world_file_size = get_file_sizes_by_path(
+            recursive_dependencies_dict, hydra, recursive_dependencies_dict)
+
+        cache[(jobset, "gawsfgqwfg")] = package_file_size, unique_packge_world_file_size
+
+    sum = 0
+    sum += package_file_size['lic263yjp40jmkc40y3vrcfbpv7lqn10-pth-2.0.7']
+    for item in recursive_dependencies_dict['lic263yjp40jmkc40y3vrcfbpv7lqn10-pth-2.0.7']:
+        sum += package_file_size[item]
+
+
+    print(f"sum={sum/(1024*1024)}, len(recursive_dependencies_dict['lic263yjp40jmkc40y3vrcfbpv7lqn10-pth-2.0.7'])={len(recursive_dependencies_dict['lic263yjp40jmkc40y3vrcfbpv7lqn10-pth-2.0.7'])}, [maximum_layer_recursive_file_size={maximum_layer_recursive_file_size}")
 
     # TODO: take stuff out of while loop
     # make case in shared entropy thing for all 0 and take full package thing then pass in packages
     for i in range(2):
-        iteration = 0
-        done = False
+        # iteration = 0
         relative_accounted_for_dict = {}
         # keeping track of how many layers there are for a given combination
         combination_layer_count_dict = {}
@@ -605,57 +636,49 @@ def __generate_layers(hydra, update_progress, report_error,
         is_creating_zero_entropy_layers = i != 1
         print("Creating " + ("" if is_creating_zero_entropy_layers else "non") +
               "zero entropy layers...")
-        while not done:
+        current_iteration = 0
+
+        percentage_done = 0
+        update_progress("Trying all possible layers...", percentage_done)
+
+        combination_lengths = [1, 7, 6, 5, 4, 3, 2, 1]
+        idk = 0
+
+        total_iterations = 0
+
+        for k in range(1, len(job_list)+1):
+            total_iterations += n_choose_k_count(len(job_list)+1, k)
+
+        for combination_length in combination_lengths:
+
             if for_loop_flag:
+
+                # needed without while loop 
                 for_loop_flag = False
                 break
-            done = True
-            current_iteration = 0
+            idk = idk + 1
 
-            iteration = iteration+1
-            # print(f"itteration={iteration}")
+            combinations_list = list(
+                combinations(job_list, combination_length))
 
-            # #TODO: make sure this still works?
-            new_job_list = []
-            for job in job_list:
-                # if job in relative_accounted_for_dict:
-                #     print(f"job={relative_accounted_for_dict[job]}")
-                if job not in relative_accounted_for_dict or relative_accounted_for_dict[job] <= 0.98:
-                    new_job_list.append(job)
-            job_list = new_job_list
+            for combination in reversed(combinations_list):
 
-            percentage_done = 0
-            update_progress("Trying all possible layers...", percentage_done)
+                # if len(answer) > 7:
+                #     return answer, recursive_dependencies_dict
+                current_iteration += 1
+                percentage_done = (current_iteration /
+                                     total_iterations) * 100
+                update_progress(
+                     "Trying all possible layers...", percentage_done)
 
-            combination_lengths = [1, 7, 6, 5, 4, 3, 2, 1]
-            idk = 0
 
-            total_iterations = 0
-
-            for k in range(1, len(job_list)+1):
-                total_iterations += n_choose_k_count(len(job_list)+1, k)
-
-            for combination_length in combination_lengths:
-
+                done = False
                 if for_loop_flag:
                     break
-                idk = idk + 1
-                if is_new_package_added:
-                    is_new_package_added = False
-                    break
-
-                combinations_list = list(
-                    combinations(job_list, combination_length))
-
-                for combination in reversed(combinations_list):
-                    if for_loop_flag or is_new_package_added:
+                while not done:
+                    done = True
+                    if for_loop_flag:
                         break
-                    current_iteration += 1
-                    percentage_done = (current_iteration /
-                                       total_iterations) * 100
-                    update_progress(
-                        "Trying all possible layers...", percentage_done)
-
                     if combination not in combination_layer_count_dict:
                         combination_layer_count_dict[combination] = 0
 
@@ -727,14 +750,14 @@ def __generate_layers(hydra, update_progress, report_error,
                         # we want to go through the combination_length == 1 combinations first to calculate the job_overhead_dict but then consider the combinations
                         # in descending order of combination length such that if two different combinations both meet the same threshold, the one of higher combination
                         # length will be looked at first
-                        if iteration < 20:
-                            continue
+                        # if iteration < 20:
+                        #     continue
                         if idk == 1:
                             continue
 
                     not_visted = packages
                     while ((len(not_visted))):
-                        if for_loop_flag or is_new_package_added:
+                        if for_loop_flag:
                             break
                         # if is_creating_zero_entropy_layers:
                         dd = packages
@@ -761,7 +784,7 @@ def __generate_layers(hydra, update_progress, report_error,
                                 (job, all_job_packages))
 
                         overhead, accounted_for_packages_file_size, selected_packages, relative_accounted_for, total_recursive_file_size = calculate_overhead(
-                            combination, individual_job_package_lists, recursive_dependencies_dict, dd, recursive_added_job, accounted_for_packages_in_jobs, i, is_creating_zero_entropy_layers, package_file_size, max_recursive_file_size, other_dict, combination_packages_dict, answer, combination_layer_count_dict)
+                            combination, individual_job_package_lists, recursive_dependencies_dict, dd, recursive_added_job, accounted_for_packages_in_jobs, i, is_creating_zero_entropy_layers, package_file_size, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size_bytes, other_dict, combination_packages_dict, answer, combination_layer_count_dict)
 
                         if relative_accounted_for == 0:
                             continue
@@ -774,11 +797,11 @@ def __generate_layers(hydra, update_progress, report_error,
                         # TODO: INVESTIGATE WHY SCREEN-SHELL IS BEING ADDED WITH ACCOUNTED_FOR_PACKAGE_FILE_SIZE=0 and OVERHEAD!=0
 
                         update_stuff(recursive_dependencies_dict, recursive_added_job,
-                                     accounted_for_packages_in_jobs, selected_packages, other_dict, individual_job_package_lists, package_file_size)
+                                        accounted_for_packages_in_jobs, selected_packages, other_dict, individual_job_package_lists, package_file_size)
 
                         relative_accounted_for_dict, is_accounted_for_file_size_threshold_satisified = update_relative_accounted_for_dict(
                             is_creating_zero_entropy_layers, recursive_dependencies_dict, package_file_size, accounted_for_packages_in_jobs, combination, master_list)
-
+                        
                         # stripped_packages = [strip_hash(
                         #     item) for item in selected_packages]
 
@@ -792,11 +815,11 @@ def __generate_layers(hydra, update_progress, report_error,
                             answer[(
                                 combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['overhead'] += overhead
                             answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])
-                                   ]['accounted_for_packages_file_size'] += accounted_for_packages_file_size
+                                    ]['accounted_for_packages_file_size'] += accounted_for_packages_file_size
                             answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])
-                                   ]['relative_accounted_for'] += relative_accounted_for
+                                    ]['relative_accounted_for'] += relative_accounted_for
                             answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])
-                                   ]['total_recursive_file_size'] += total_recursive_file_size
+                                    ]['total_recursive_file_size'] += total_recursive_file_size
 
                             if not is_creating_zero_entropy_layers:
                                 # answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['average'] = fwfo(
@@ -811,8 +834,8 @@ def __generate_layers(hydra, update_progress, report_error,
                             # fwfo(
                             #     set(selected_packages), fokwfko, store_path_entropy_dict)
                             answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])] = {'overhead': overhead, 'packages': set(stripped_packages),
-                                                                                                                                 'accounted_for_packages_file_size': accounted_for_packages_file_size, 'average': average,
-                                                                                                                                 'relative_accounted_for': relative_accounted_for, 'total_recursive_file_size': total_recursive_file_size}
+                                                                                                                                    'accounted_for_packages_file_size': accounted_for_packages_file_size, 'average': average,
+                                                                                                                                    'relative_accounted_for': relative_accounted_for, 'total_recursive_file_size': total_recursive_file_size}
 
                         total_overhead = 0
                         lowest_average = None
@@ -846,7 +869,7 @@ def __generate_layers(hydra, update_progress, report_error,
                         update_layer_progress(progress)
 
                         if True or (combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination]) in answer and \
-                                answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['total_recursive_file_size'] >= max_recursive_file_size:
+                                answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['total_recursive_file_size'] >= maximum_layer_recursive_file_size_bytes:
                             # print(
                             #     f"starting a new layer for combination={combination}")
                             # _send_layer(combination, is_creating_zero_entropy_layers, answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])], send_layer)
@@ -856,12 +879,11 @@ def __generate_layers(hydra, update_progress, report_error,
                             for_loop_flag = True
                             break
 
-                        is_new_package_added = True
-                        break
+                        # is_new_package_added = True
+                        # break
 
     send_layers(answer, is_creating_zero_entropy_layers, send_layer)
-    return answer
-
+    return answer, recursive_dependencies_dict
 
 def main():
 

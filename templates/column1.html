@@ -29,28 +29,168 @@
         .content {
             padding: 10px;
         }
+
+        /* Documentation Panel Styles */
+        #documentation-panel {
+            position: fixed;
+            top: 50%;
+            right: -400px;
+            /* Initially hidden */
+            transform: translateY(-50%);
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-left: 1px solid #ccc;
+            width: 300px;
+            height: 80%;
+            overflow-y: auto;
+            z-index: 999;
+            transition: right 0.3s ease;
+        }
+
+        #documentation-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1;
+            /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: auto;
+            /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0);
+            /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Black w/ opacity */
+            padding-top: 60px;
+            /* Place content 60px from the top */
+        }
+
+        /* Modal content */
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+
+        .close-button {
+            cursor: pointer;
+            font-size: 20px;
+            color: #000;
+            border: none;
+            background: none;
+        }
+
+        .close-button:hover {
+            color: #ff0000;
+            /* Change color on hover if desired */
+        }
+
+        .move-up {
+            position: relative;
+            top: -10px;
+            /* Adjust this value to move the button up */
+        }
+
+        .package-list-close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .outer-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .inner-container {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+            /* Adjust the margin as needed */
+        }
     </style>
 </head>
 
 <body>
-    <div class="header" onclick="toggleColumn('column1')">Column 1</div>
     <div class="content">
-        <!-- Column 1 content goes here -->
-        {% include 'config_panel.html' %}
 
-        <!-- generate data form -->
-        {% include 'generate_data_form.html' %}
-        {# Pass variables to the included template using the 'with' statement #}
-        {% with sort_keys=sort_keys,
-        selected_quantity=selected_quantity,
-        default_minimum_entropy=minimum_entropy,
-        default_minimum_file_size=minimum_file_size,
-        selected_sort_key_1=selected_sort_key_1,
-        selected_sort_key_2=selected_sort_key_2,
-        selected_project=selected_project %}
-        {% endwith %}
-        <div id="storePathList">
-            {% include 'store_path_list.html' %}
+        <!-- Documentation Toggle Button -->
+        <div id="documentation-toggle">Documentation</div>
+
+        <!-- Include Documentation Panel -->
+        {% include 'package_explorer_documentation_panel.html' %}
+        <!-- Column 1 content goes here -->
+        <div class="container mt-5">
+
+            <!-- generate data form -->
+            {% include 'generate_data_form.html' %}
+            {# Pass variables to the included template using the 'with' statement #}
+            {% with sort_keys=sort_keys,
+            selected_quantity=selected_quantity,
+            default_minimum_entropy=minimum_entropy,
+            default_minimum_file_size=minimum_file_size,
+            selected_sort_key_1=selected_sort_key_1,
+            selected_sort_key_2=selected_sort_key_2,
+            selected_project=selected_project %}
+            {% endwith %}
+
+            <hr> <!-- Horizontal line -->
+
+            <!-- Store Path Comparsion Tool -->
+
+            <h3 class="mb-3">Store Path Comparison Tool</h3>
+
+            <div class="outer-container">
+                <p class="inline-paragraph">Base:</p>
+                <div class="inner-container">
+                    <p class="inline-paragraph" id="base"></p>
+                </div>
+            </div>
+
+            <div class="outer-container">
+                <p class="inline-paragraph">Comparison:</p>
+                <div class="inner-container">
+                    <p class="inline-paragraph" id="compare"></p>
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="compare()">Compare Branches</button>
+
+            <!-- Modal -->
+            <div id="modal" class="modal">
+                <div class="modal-content" id="modal-content">
+                    <!-- List items will be appended here -->
+                    <div>
+                    </div>
+                    <button class="close-button package-list-close-button" id="close-button">x</button>
+                </div>
+            </div>
+
+            <hr> <!-- Horizontal line -->
+
+            <!-- Package List -->
+            
+            <h3 class="mb-3">Package List</h3>
+
+            <div id="storePathList">
+                <p class="text-muted">Once generated the package list will appear here...</p>
+            </div>
         </div>
     </div>
 
@@ -60,6 +200,23 @@
             column.classList.toggle('closed');
         }
     </script>
+
+    <script>
+        // Toggle documentation panel visibility
+        document.getElementById('documentation-toggle').addEventListener('click', function () {
+            document.getElementById('documentation-panel').style.right = '20px';
+        });
+
+        // Close documentation panel
+        document.getElementById('close-documentation').addEventListener('click', function () {
+            document.getElementById('documentation-panel').style.right = '-400px';
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='scripts/post_data.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="{{ url_for('static', filename='scripts/script.js') }}"></script>
+
 </body>
 
 </html>

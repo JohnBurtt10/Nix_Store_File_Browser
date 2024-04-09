@@ -199,14 +199,21 @@ def get_cached_or_fetch_evals_info(data, evals_info_cache):
 def get_cached_or_compute_reverse_dependency_weight(project_name, jobset, reverse_dependency_weight_cache, traverse_jobset, hydra, count_descendants):
     reverse_dependency_weight_dict = {}
     file_size_reverse_dependency_weight_dict = {}
+
     if jobset in reverse_dependency_weight_cache:
         (reverse_dependency_weight_dict,
          file_size_reverse_dependency_weight_dict) = reverse_dependency_weight_cache[jobset]
 
     else:
 
+        def update_progress(task, progress):
+            pass
+
+        def report_error(error):
+            pass
+
         # TODO: Why are the dicts acting immutable??
-        traverse_jobset(hydra, project_name, jobset,
+        traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
                         lambda job, raw_data: count_descendants(hydra,
                                                                 raw_data,
                                                                 reverse_dependency_weight_dict,

@@ -12,10 +12,40 @@
     .container-card {
       margin-bottom: 20px;
     }
+     /* Documentation Panel Styles */
+     #documentation-panel {
+            position: fixed;
+            top: 50%;
+            right: -400px;
+            /* Initially hidden */
+            transform: translateY(-50%);
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-left: 1px solid #ccc;
+            width: 300px;
+            height: 80%;
+            overflow-y: auto;
+            z-index: 999;
+            transition: right 0.3s ease;
+        }
+
+        #documentation-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Documentation Toggle Button -->
+    <div id="documentation-toggle">Documentation</div>
+
+    <!-- Include Documentation Panel -->
+    {% include 'layer_viewer_documentation_panel.html' %}
+
     <h1>Container Layer Viewer</h1>
     <div class="form-group">
       <label for="containerSelect">Select Container:</label>
@@ -52,7 +82,9 @@
               <h5 class="card-title">${layer.layer}</h5>
               <p class="card-text">Packages: ${layer.packages.join(', ')}</p>
               <p class="card-text">New Data: ${layer.newData}</p>
-              <p class="card-text">New Data: ${layer.accountedForPackages}</p>
+              <p class="card-text">Package File Size: ${layer.packageFileSize}</p>
+              <p class="card-text">Total Recursive File Size: ${layer.totalRecursiveFileSize}</p>
+              <p class="card-text">Recursively Accounted For Packages: ${layer.accountedForPackages}</p>
             </div>
           </div>
         `;
@@ -68,5 +100,17 @@
     // Initial update on page load
     updateLayers(document.getElementById('containerSelect').value);
   </script>
+
+<script>
+  // Toggle documentation panel visibility
+  document.getElementById('documentation-toggle').addEventListener('click', function () {
+      document.getElementById('documentation-panel').style.right = '20px';
+  });
+
+  // Close documentation panel
+  document.getElementById('close-documentation').addEventListener('click', function () {
+      document.getElementById('documentation-panel').style.right = '-400px';
+  });
+</script>
 </body>
 </html>

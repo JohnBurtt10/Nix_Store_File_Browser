@@ -136,21 +136,18 @@ function createListItem(path, details) {
         ["Reverse Dependency Weight (File Size)", "file_size_reverse_dependency_weight"]
     ];
 
-    // Create dropdown div
-    var dropdownDiv = document.createElement("div");
-    dropdownDiv.className = "dropdown";
-    dropdownDiv.id = path;
-    dropdownDiv.style.border = "2px solid black"; // This creates a red solid border with 2 pixel width
-
-
     detailsArray.forEach(function (detail) {
         var title = detail[0];
         var val = details[detail[1]];
         var pElement = document.createElement("p");
         pElement.textContent = title + ": " + val;
-        dropdownDiv.appendChild(pElement);
+        listItem.appendChild(pElement);
     });
 
+    // Create dropdown div
+    var dropdownDiv = document.createElement("div");
+    dropdownDiv.className = "dropdown";
+    dropdownDiv.id = path;
 
     // Create inner div with store path selection and button
     var innerDiv = document.createElement("div");
@@ -159,7 +156,6 @@ function createListItem(path, details) {
     var selectElement = document.createElement("select");
     selectElement.id = "storePathSelect";
     selectElement.name = "storePathSelect";
-    selectElement.className = "mr-2";
 
     details.store_paths.forEach(function (storePath) {
         var optionElement = document.createElement("option");
@@ -170,7 +166,6 @@ function createListItem(path, details) {
 
     var buttonElement = document.createElement("button");
     buttonElement.setAttribute("onclick", "replacePath(this)");
-    buttonElement.className = "btn-secondary";
     buttonElement.type = "submit";
     buttonElement.textContent = "Go";
 
@@ -191,7 +186,6 @@ function createListItem(path, details) {
 
     var compareButton = document.createElement("button");
     compareButton.setAttribute("onclick", "replaceText(this.parentElement)");
-    compareButton.className = "btn-secondary ml-2";
     compareButton.textContent = "Compare";
 
     var nestedUl = document.createElement("ul");

@@ -1,6 +1,3 @@
-
-from write_to_file import write_list_to_file
-
 # TODO: put this in a while loop for while something is added
 # calculate overhead based on if a given package would be pulled with an image
 # TODO;make this global
@@ -8,7 +5,7 @@ def strip_hash(string):
     return string.split('-', 1)[1]
 
 
-def calculate_overhead(combination, individual_job_package_lists, recursive_dependencies_dict, stripped_non_zero_entropy_packages, recursive_added_job, accounted_for_packages_in_jobs, i, is_creating_zero_entropy_layers, package_file_size, max_recursive_file_size, other_dict, combination_packages_dict, answer, combination_layer_count_dict):
+def calculate_overhead(combination, individual_job_package_lists, recursive_dependencies_dict, stripped_non_zero_entropy_packages, recursive_added_job, accounted_for_packages_in_jobs, i, is_creating_zero_entropy_layers, package_file_size, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size_bytes, other_dict, combination_packages_dict, answer, combination_layer_count_dict):
     # packages recursively pulled with this layer
     recursive_added = set()
     overhead = 0
@@ -23,38 +20,52 @@ def calculate_overhead(combination, individual_job_package_lists, recursive_depe
     #
     _accounted_for_packages_in_jobs = {}
 
-    dqadqd = 0
+    done = False
+
+    unique_packages_dict = {}
+
+    for job, lisrtt in individual_job_package_lists:
+        unique_packages = set()
+        total_file_size = 0
+
+        for ddd in lisrtt:
+            unique_packages.add((ddd))
+            for p in recursive_dependencies_dict[ddd]:
+                unique_packages.add((p))
+
+        if job not in _accounted_for_packages_in_jobs:
+            _accounted_for_packages_in_jobs[job] = set()
+
+        if not len(unique_packages):
+            continue
+
+        for fgwfiow in unique_packages:
+            total_file_size += package_file_size[fgwfiow]
+
+        unique_packages_dict[job] = (unique_packages, total_file_size)
 
     
-    # print(f"calculating overhead for combination={combination}")
-    while (True):
+    # print(f"calculating overhead for combination={combination}, len(packages)={len(stripped_non_zero_entropy_packages)}")
+    while (not done):
 
         best = None
         count = 0
-        visited_keys = set()
         best_relative_accounted_for = None
+        done = True
+
+        bew = 0
 
 
         for item, value in stripped_non_zero_entropy_packages.items():
             # shouldn't be needed
             if item in selected_packages:
                 continue
-            count += 1
-            visited_keys.add(item)
+            # count += 1
 
-            # Print elements that haven't been iterated over yet
-            remaining_keys = set(
-                stripped_non_zero_entropy_packages.keys()) - visited_keys
-            
-            # if len(combination) == 7:
-            # print(f"len(remaining_keys)={len(remaining_keys)}, count={count}")
-
-            if best_relative_accounted_for:
-                # print(f"checking count...")
-                if count > 50:
-                    break
-
-            dqadqd += 1
+            # if best_relative_accounted_for:
+            #     # print(f"checking count...")
+            #     if count > 50:
+            #         break
             # checking packages themselves
             # TODO: seems unnecessary?
             if strip_hash(item) in recursive_added:
@@ -114,25 +125,10 @@ def calculate_overhead(combination, individual_job_package_lists, recursive_depe
                 continue
 
             continue_flag = False
-            for job, lisrtt in individual_job_package_lists:
-                unique_packages = set()
+            for job in unique_packages_dict:
                 __accounted_for_package_file_size = 0
-                total_file_size = 0
                 __accounted_for_packages_in_jobs[job] = set()
-
-                for ddd in lisrtt:
-                    unique_packages.add((ddd))
-                    for p in recursive_dependencies_dict[ddd]:
-                        unique_packages.add((p))
-
-                if job not in _accounted_for_packages_in_jobs:
-                    _accounted_for_packages_in_jobs[job] = set()
-
-                if not len(unique_packages):
-                    continue
-
-                for fgwfiow in unique_packages:
-                    total_file_size += package_file_size[fgwfiow]
+                unique_packages, total_file_size = unique_packages_dict[job]
 
 
                 # double counting here
@@ -146,9 +142,11 @@ def calculate_overhead(combination, individual_job_package_lists, recursive_depe
                         __accounted_for_packages_in_jobs[job].add(strip_hash(p))
 
                 # if the package doesn't account for anything for a job in the combination, we don't want to start a layer with it
-                if (combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination]) not in answer and __accounted_for_package_file_size == 0:
+                if (combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination]) not in answer and __accounted_for_package_file_size/(1024*1024) < minimum_layer_recursive_file_size:
                     continue_flag = True
                     break
+
+                # print(f"__accounted_for_package_file_size/(1024*1024)={__accounted_for_package_file_size/(1024*1024)}")
 
                 _accounted_for_packages_file_size += __accounted_for_package_file_size
 
@@ -158,30 +156,45 @@ def calculate_overhead(combination, individual_job_package_lists, recursive_depe
                 continue
 
 
-            if (best_relative_accounted_for is not None and _relative_accounted_for > best_relative_accounted_for) or (best_relative_accounted_for is None and ((_overhead == 0 and _relative_accounted_for >= 0.005) or (_overhead < 500000 and _relative_accounted_for >= 0.01))):
+            # if not is_creating_zero_entropy_layers:
+            #     print(f"package={item}, _relative_accounted_for={_relative_accounted_for}")
+            #     breakpoint()
 
-                count = 0
+
+
+
+            #TODO: change this to be lowest such that its still greater than some threshold
+
+
+            if (best_relative_accounted_for is not None and _relative_accounted_for > 0.01 and _relative_accounted_for < best_relative_accounted_for) or \
+                (best_relative_accounted_for is None and ((_overhead == 0 and _relative_accounted_for >= 0.01) or \
+                (_overhead < 500000 and _relative_accounted_for >= 0.01))):
+            # or \
+            #     (not is_creating_zero_entropy_layers and (best_relative_accounted_for is None or _relative_accounted_for > best_relative_accounted_for)):
 
                 best = (item, _accounted_for_packages_file_size, _relative_accounted_for, _overhead, __accounted_for_packages_in_jobs)
 
                 best_relative_accounted_for = _relative_accounted_for
 
-                # print(f"new best_relative_acoutned_for={best_relative_accounted_for}")
+                # if best_relative_accounted_for > 0.05:
+                #     break
 
                 # break
 
-            else:
-                #TODO: fix this
-                if item in combination_packages_dict[(
-                    combination, is_creating_zero_entropy_layers)]:
-                    combination_packages_dict[(
-                        combination, is_creating_zero_entropy_layers)].pop(item)
+            # else:
+            #     #TODO: fix this
+            #     if item in combination_packages_dict[(
+            #         combination, is_creating_zero_entropy_layers)]:
+            #         combination_packages_dict[(
+            #             combination, is_creating_zero_entropy_layers)].pop(item)
 
         if best is None:
             break
+
         (item, _accounted_for_packages_file_size, _relative_accounted_for, _overhead, __accounted_for_packages_in_jobs) = best
-        # print(f"item={item}, _accounted_for_packages_file_size={_accounted_for_packages_file_size}, _relative_accounted_for={_relative_accounted_for}, _overhead={_overhead}")
-        if (_overhead == 0 and _relative_accounted_for >= 0.005) or (_overhead < 500000 and _relative_accounted_for >= 0.01):
+        if (_overhead == 0 and _relative_accounted_for >= 0.01) or (_overhead < 500000 and _relative_accounted_for >= 0.01):
+        # \
+        #     or (not is_creating_zero_entropy_layers and _relative_accounted_for != 0):
             for job, _ in individual_job_package_lists:
 
                 try:
@@ -202,9 +215,10 @@ def calculate_overhead(combination, individual_job_package_lists, recursive_depe
             recursive_added.add(item)
             overhead += _overhead
 
-            if total_recursive_file_size > max_recursive_file_size:
+            if total_recursive_file_size > maximum_layer_recursive_file_size_bytes:
                 break
 
+            done = False
 
             # only one package per layer
             

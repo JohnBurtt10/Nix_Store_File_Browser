@@ -49,12 +49,12 @@ function replaceText(caret) {
 
         base.setAttribute("data-custom-value", hash);
         base.innerText = path;
-        base.parentElement.innerHTML += '<button class="close-button" onclick="removeBranch(this)">x</button>';
+        base.parentElement.innerHTML += '<button class="close-button move-up" onclick="removeBranch(this)">x</button>';
 
     } else if (compare.innerText == "") {
         compare.setAttribute("data-custom-value", hash);
         compare.innerText = path;
-        compare.parentElement.innerHTML += '<button class="close-button" onclick="removeBranch(this)">x</button>';
+        compare.parentElement.innerHTML += '<button class="close-button move-up" onclick="removeBranch(this)">x</button>';
 
     } else {
 
@@ -80,41 +80,42 @@ function getSelectedJobsets() {
 }
 
 function compare() {
-
     var base = document.getElementById("base");
     var compare = document.getElementById("compare");
     var baseHash = base.getAttribute('data-custom-value');
     var compareHash = compare.getAttribute('data-custom-value');
-    var jobsets = getSelectedJobsets();
-
+    // var jobsets = getSelectedJobsets();
+    var jobsets = [];
     var serializedJobsetsArray = JSON.stringify(jobsets);
-
     var url = '/compare/' + projectSelect.value + '/' + baseHash + '/' + compareHash + "?jobsets=" + encodeURIComponent(serializedJobsetsArray);
 
     $.get(url, function (data) {
-
-        console.log(data);
-        var list = document.getElementById("list");
+        var packageListDiv = document.getElementById("modal-content").querySelector('div');;
+        packageListDiv.innerHTML = ""; // Clear previous content
 
         data.forEach(function (item) {
-            console.log(item);
-            console.log(i)
-
-            var listElement = document.getElementById('list');
             var listItem = document.createElement('li');
             listItem.textContent = item[0];
-
             if (item[1] == 'overlap') {
                 listItem.classList.add('green-text');
             } else {
                 listItem.classList.add('red-text');
             }
-
-            listElement.appendChild(listItem);
-
+            packageListDiv.appendChild(listItem);
         });
+
+        // Display modal
+        var modal = document.getElementById("modal");
+        modal.style.display = "block";
+
+        // Close modal when close button is clicked
+        var closeButton = document.getElementById("close-button");
+        closeButton.onclick = function () {
+            modal.style.display = "none";
+        };
     });
 }
+
 
 
 function fetchAndExpand(parentElement) {
@@ -139,7 +140,7 @@ function fetchAndExpand(parentElement) {
                 key = parts[1];
 
                 // Set content for the li element
-                nestedList.innerHTML += '<li>\
+                nestedList.innerHTML += '<li class="mb-2">\
                 <span>\
                 <span\
                 class="caret"\
@@ -150,7 +151,7 @@ function fetchAndExpand(parentElement) {
                     + '">'
                     + childNode
                     + '</span><ul class="nested"></ul>\
-                <button onclick="replaceText(this.parentElement)">Compare</button>\
+                <button class="btn-secondary" onclick="replaceText(this.parentElement)">Compare</button>\
                 <span>\
                 </li>\
                 ';

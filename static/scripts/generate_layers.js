@@ -78,7 +78,9 @@ function generateLayers() {
 
     // // Get the values from the form
     // var numberOfLayers = parseInt(document.getElementById('numberOfLayers').value);
-    var quantity = parseInt(document.getElementById('valueSelector').value);
+    var minimumLayerRecursiveFileSize = parseInt(document.getElementById('minimumValueSelector').value);
+    var maximumLayerRecursiveFileSize = parseInt(document.getElementById('maximumValueSelector').value);
+
 
     // // Validate input values
     // if (isNaN(numberOfLayers) || isNaN(quantity)) {
@@ -86,7 +88,7 @@ function generateLayers() {
     //     return;
     // }
 
-    var data = { 'maxmimumLayerRecursiveFileSize': quantity, 'coverageThresholdModeEnabled': coverageThresholdModeEnabled, 'coverageThreshold': coverageThreshold, 'packageCountModeEnabled': packageCountModeEnabled, 'packageCount': packageCount };
+    var data = { 'minimumLayerRecursiveFileSize': minimumLayerRecursiveFileSize, 'maximumLayerRecursiveFileSize': maximumLayerRecursiveFileSize, 'coverageThresholdModeEnabled': coverageThresholdModeEnabled, 'coverageThreshold': coverageThreshold, 'packageCountModeEnabled': packageCountModeEnabled, 'packageCount': packageCount };
 
     socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
 
