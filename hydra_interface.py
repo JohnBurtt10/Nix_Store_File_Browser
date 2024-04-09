@@ -70,15 +70,8 @@ def cancel():
     update_file_variable_value('cancel', True)
 
 
-@app.context_processor
-def utility_processor():
-    def random():
-        return random.randint(1, 1000)  # Adjust the range as needed
-    return dict(random=random)
-
-
-@app.route('/column1')
-def column1():
+@app.route('/package_explorer')
+def package_explorer():
 
     # hydra config
     hydra_url = "http://hydra.clearpath.ai/"
@@ -86,7 +79,7 @@ def column1():
     hydra.login(username="administrator", password="clearp@th")
 
     projects = hydra.get_projects()
-    return render_template('column1.html', projects=projects,
+    return render_template('package_explorer.html', projects=projects,
                            sort_keys={'dependency_weight',
                                       'entropy', 'file_size', 'reverse_dependency_weight'},
                            top_n_values='',
@@ -97,15 +90,9 @@ def column1():
                            minimum_entropy=0,
                            minimum_file_size=0)
 
-
-@app.route('/column2')
-def column2():
-    return render_template('column2.html')
-
-
-@app.route('/column3')
-def column3():
-    return render_template('column3.html')
+@app.route('/layer_generator')
+def layer_generator():
+    return render_template('layer_generator.html')
 
 @app.route('/get_children/<parent_node>')
 def get_children(parent_node):
