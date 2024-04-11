@@ -90,9 +90,11 @@ def package_explorer():
                            minimum_entropy=0,
                            minimum_file_size=0)
 
+
 @app.route('/layer_generator')
 def layer_generator():
     return render_template('layer_generator.html')
+
 
 @app.route('/get_children/<parent_node>')
 def get_children(parent_node):
@@ -104,6 +106,7 @@ def get_children(parent_node):
     print(f"Children for {parent_node}: {children}")
 
     return jsonify(children)
+
 
 @app.route('/compare/<project_name>/<base_node>/<compare_node>')
 def compare(project_name, base_node, compare_node):
@@ -195,14 +198,20 @@ def display_dict(timestamp):
 @socketio.on('start_progress', namespace='/test')
 def start_progress(data):
     # Unpack parameters from the data dictionary
+    start_date = data.get(
+        'startDate')
+    end_date = data.get(
+        'endDate')
+    
+    print(f"end_date={end_date}")
     minimum_layer_recursive_file_size = data.get(
         'minimumLayerRecursiveFileSize')
     maximum_layer_recursive_file_size = data.get(
         'maximumLayerRecursiveFileSize')
-    coverage_threshold_mode_enabled = data.get('coverageThresholdModeEnabled')
-    coverage_threshold = data.get('coverageThreshold')
-    package_count_mode_enabled = data.get('packageCountModeEnabled')
-    package_count = data.get('packageCount')
+    # coverage_threshold_mode_enabled = data.get('coverageThresholdModeEnabled')
+    # coverage_threshold = data.get('coverageThreshold')
+    # package_count_mode_enabled = data.get('packageCountModeEnabled')
+    # package_count = data.get('packageCount')
 
     update_file_variable_value('cancel', False)
 
@@ -240,8 +249,8 @@ def start_progress(data):
 
     socketio.emit('timestamp', current_timestamp, namespace='/test')
 
-    answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size,
-                             coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count)
+    answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress,
+                             minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, start_date, end_date)
 
     # new_dict = {}
     # for combination, is_creating_zero_entropy_layers, i in answer:

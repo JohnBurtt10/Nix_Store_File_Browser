@@ -136,6 +136,8 @@ def calculate_entropy(hydra,
                     jobset) + 1]
             else:
                 break
+
+            print(f"jobset={jobset}, next_jobset={next_jobset}")
             
             # populate_references(hydra, project_name, next_jobset, references_dict, visited)
 
@@ -230,6 +232,7 @@ def traverse_jobset(hydra, project_name, jobset1, jobset2, store_path_entropy_di
             store_name1 = out_path1[len("/nix/store/"):]
             out_path2 = build_info2.get('outPath', [])
             store_name2 = out_path2[len("/nix/store/"):]
+            print(f"store_path={store_name1}")
             if not entropy_compare_jobset_recursive(
                 hydra, job1, store_path_entropy_dict, store_name1, store_name2, references_dict, check_cancel_enabled):
                 return False
@@ -240,7 +243,7 @@ def traverse_jobset(hydra, project_name, jobset1, jobset2, store_path_entropy_di
     return True
 
 
-def entropy_compare_jobset_recursive(hydra, job, store_path_entropy_dict, store_name1, store_name2, references_dict, check_cancel_enabled, path=()):
+def entropy_compare_jobset_recursive(hydra, job, store_path_entropy_dict, store_name1, store_name2, references_dict, check_cancel_enabled, path=(), depth=0):
 
 
     # test
@@ -275,7 +278,7 @@ def entropy_compare_jobset_recursive(hydra, job, store_path_entropy_dict, store_
     #     print(f"references: {references1}")
 
     # if "screen-rc" in store_name1:
-    # print(f"store_name1: {store_name1}, store_name2: {store_name2}")
+    print(f"store_name1: {store_name1}")
     # print(f"path: {path}\n")
 
     store_name1_without_timestamp = remove_timestamp(store_name1)
@@ -308,8 +311,10 @@ def entropy_compare_jobset_recursive(hydra, job, store_path_entropy_dict, store_
         # TODO: ??
         if _store_name1 == store_name1 or _store_name1 == store_name2:
             continue
+        if depth == 1:
+            return True
         if not entropy_compare_jobset_recursive(
-            hydra, job, store_path_entropy_dict, _store_name1, _store_name2, references_dict, check_cancel_enabled, path + (key + '-' + store_name1.split('-', 1)[0] + '/' + store_name2.split('-', 1)[0], )):
+            hydra, job, store_path_entropy_dict, _store_name1, _store_name2, references_dict, check_cancel_enabled, path + (key + '-' + store_name1.split('-', 1)[0] + '/' + store_name2.split('-', 1)[0], ), depth+1):
             return False
     
     return True
@@ -354,7 +359,7 @@ def other_func():
     def update_progress(task, progress):
         pass
 
-    entropy, other = get_cached_or_fetch_store_path_entropy_dict(hydra, "v2-34-devel", update_progress, approximate_uncalculated_jobsets_mode_enabled=False, check_cancel_enabled=False)
+    entropy, other = get_cached_or_fetch_store_path_entropy_dict(hydra, "v2-32-devel", update_progress, approximate_uncalculated_jobsets_mode_enabled=False, check_cancel_enabled=False)
 
     # for key in other:
     #     for k in other[key]:

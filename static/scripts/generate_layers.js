@@ -80,6 +80,8 @@ function generateLayers() {
     // var numberOfLayers = parseInt(document.getElementById('numberOfLayers').value);
     var minimumLayerRecursiveFileSize = parseInt(document.getElementById('minimumValueSelector').value);
     var maximumLayerRecursiveFileSize = parseInt(document.getElementById('maximumValueSelector').value);
+    var startDate = $('#start-date').datepicker('getDate');    
+    var endDate = $('#end-date').datepicker('getDate');
 
 
     // // Validate input values
@@ -88,7 +90,7 @@ function generateLayers() {
     //     return;
     // }
 
-    var data = { 'minimumLayerRecursiveFileSize': minimumLayerRecursiveFileSize, 'maximumLayerRecursiveFileSize': maximumLayerRecursiveFileSize, 'coverageThresholdModeEnabled': coverageThresholdModeEnabled, 'coverageThreshold': coverageThreshold, 'packageCountModeEnabled': packageCountModeEnabled, 'packageCount': packageCount };
+    var data = { 'minimumLayerRecursiveFileSize': minimumLayerRecursiveFileSize, 'maximumLayerRecursiveFileSize': maximumLayerRecursiveFileSize, 'startDate': startDate, 'endDate': endDate };
 
     socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
 

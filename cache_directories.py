@@ -35,6 +35,7 @@ search_for_dependency_cache_directory = "cache/search_for_dependency_cache_direc
 entropy_tree_cache_directory = "cache/entropy_tree_cache_directory"
 _generate_layers_cache_directory = "cache/_generate_layers_cache_directory"
 store_path_file_size_cache_directory = "cache/store_path_file_size_cache_directory"
+fetch_and_compare_nix_paths_cache_directory = "cache/fetch_and_compare_nix_paths_cache_directory"
 cache = Cache(my_cache_directory)
 dependency_weight_cache = Cache(dependency_weight_cache_directory)
 first_sort_cache = Cache(first_sort_cache_directory)
@@ -70,6 +71,7 @@ search_for_dependency_cache = Cache(search_for_dependency_cache_directory)
 entropy_tree_cache = Cache(entropy_tree_cache_directory)
 _generate_layers_cache = Cache(_generate_layers_cache_directory)
 store_path_file_size_cache = Cache(store_path_file_size_cache_directory)
+fetch_and_compare_nix_paths_cache = Cache(fetch_and_compare_nix_paths_cache_directory)
 
 # Define __all__ to include all names
 __all__ = [
@@ -107,5 +109,6 @@ __all__ = [
     "search_for_dependency_cache",
     "entropy_tree_cache",
     "_generate_layers_cache",
-    "store_path_file_size_cache"
+    "store_path_file_size_cache",
+    "fetch_and_compare_nix_paths_cache"
 ]

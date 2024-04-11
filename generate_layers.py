@@ -17,6 +17,7 @@ from layering_sanity_check import layering_sanity_check
 from get_sorted_jobsets import get_sorted_jobsets
 import pickle
 from get_file_sizes_by_path import get_file_sizes_by_path
+from fetch_and_compare_nix_paths import feth_and_compare_nix_paths
 
 def retrieve_and_check_cancel():
     return False
@@ -61,19 +62,19 @@ def get_true_recursive_file_size(hydra, layer, recursive_dependencies_dict, pack
     return true_recursive_file_size
 
 
-def generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled=False, coverage_threshold=0, package_count_mode_enabled=False, package_count=0, project_name="v2-34-devel"):
+def generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, start_date, end_date, project_name="v2-34-devel"):
 
     sorted_jobsets = get_sorted_jobsets(hydra, project_name)
     jobset = sorted_jobsets[0]
 
     # zzz has demo version
-    if ("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size) in cache:
+    if False and ("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size) in cache:
         answer, recursive_dependencies_dict = cache[("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)]
     else:
         recursive_dependencies_dict = get_recursive_dependencies(
             hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True)
         answer, _ = _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, 
-                                  coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name, jobset)
+                                  start_date, end_date, project_name, jobset)
         cache[("generate_layersa", minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)] = answer, recursive_dependencies_dict
     # print(f"answer={answer}")
     job_layer_dict = {}
@@ -175,24 +176,37 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
         # break
 
 
-def _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, coverage_threshold_mode_enabled, coverage_threshold, package_count_mode_enabled, package_count, project_name, jobset):
+def _generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress,
+                     minimum_layer_recursive_file_size, maximum_layer_recursive_file_size,
+                     start_date, end_date, project_name, jobset):
 
-    if True:
-        store_path_entropy_dict, fokwfko = get_cached_or_fetch_store_path_entropy_dict(
-            hydra, project_name, update_progress, approximate_uncalculated_jobsets_mode_enabled=True)
+    
+    fokwfko = {}
 
-    else:
-        dependency_all_store_path_dict = cache_utils.general_cache_function(hydra, update_progress, report_error, "v2-32-devel", traverse_jobset, dependency_all_store_path_dict_cache,
-                                                                            cache_utils.update_dependency_all_store_path_dict, False, False, True, True, "Finding all store paths for packages", None, sum_dicts_of_lists)[0]
-        store_path_entropy_dict = cache_utils.get_basic_entropy(
-            dependency_all_store_path_dict)
+    from datetime import datetime
+
+    parsed_start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%S.%fZ')
+    parsed_end_date = datetime.strptime(end_date, '%Y-%m-%dT%H:%M:%S.%fZ')
+    entropy_dict = feth_and_compare_nix_paths(parsed_start_date, parsed_end_date)
+
+
+    
+    # if True:
+    #     store_path_entropy_dict, fokwfko = get_cached_or_fetch_store_path_entropy_dict(
+    #         hydra, project_name, update_progress, approximate_uncalculated_jobsets_mode_enabled=True)
+
+    # else:
+    #     dependency_all_store_path_dict = cache_utils.general_cache_function(hydra, update_progress, report_error, "v2-32-devel", traverse_jobset, dependency_all_store_path_dict_cache,
+    #                                                                         cache_utils.update_dependency_all_store_path_dict, False, False, True, True, "Finding all store paths for packages", None, sum_dicts_of_lists)[0]
+    #     store_path_entropy_dict = cache_utils.get_basic_entropy(
+    #         dependency_all_store_path_dict)
 
     # if retrieve_and_check_cancel():
     #     return True
 
     return __generate_layers(hydra, update_progress, report_error,
                              send_layer, update_layer_progress,
-                             project_name, jobset, store_path_entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)
+                             project_name, jobset, entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size)
 
 
 def reduce_package_list(recursive_dependencies_dict, non_zero_entropy_packages):
