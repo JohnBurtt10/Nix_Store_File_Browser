@@ -44,24 +44,23 @@ Use the built-in continuous integration in GitLab.
 
 ***
 
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
 ## Name
-Choose a self-explaining name for your project.
+Nix Package Explorer and Layer Generator
 
 ## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+The goal with the Nix Package Explorer and Layer Generator is twofold, with the first being to provide an intuitive way to explore the packages that compose a project. This is accomplished by being able to generate lists of packages with the `Package Explorer` tool that provide meaningful metrics such as entropy and dependency weight as well as by allowing the client to specify sort and filter critera based on those same metrics. From there, the client can take this newfound deeper understanding of their project to the `Layer Generator` to create optimized Nix Layers for their containers.
+
+## Motivation
+Optimizing Nix layers enhances build performance and reduces disk space usage by minimizing redundant dependencies, leading to faster deployments and simplified maintenance of Nix environments. This mjkensures consistent builds, improves reproducibility, and streamlines development workflows.
 
 ## Badges
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
 ## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+![alt text](landing_page.png, "Landing Page")
+![alt text](package_explorer.png, "Package Explorer")
+![alt text](layer_generator.png, "Layer Generator")
+[text](../../layer_generator, "Layer Generator Demo")
 
 ## Installation
 Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
@@ -73,6 +72,18 @@ Use examples liberally, and show the expected output if you can. It's helpful to
 Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
 
 ## Roadmap
+
+<!-- # Git ls-remote data instead of hydra data
+Like how the entropy for the `Layer Generator` tool is now calculated with the references from the remote repository instead of through Hydra, ` -->
+
+# Replacing Flask
+While Flask is simplistic, flexible and minimalistic, if this project were to be built upon any further, a more robust framework should be used in place of it such as
+Django, which offers a comprehensive set of built-in features, including an ORM, authentication system, and admin interface
+
+# More Sophisticated Entropy Calculation
+Because of how the git ls-remote entropy calculation is currently done which is by keeping track of 
+
+
 If you have ideas for releases in the future, it is a good idea to list them in the README.
 
 ## Contributing
@@ -90,3 +101,24 @@ For open source projects, say how it is licensed.
 
 ## Project status
 If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
+## Project File Structure 
+Nix_Store_File_Browser/
+│
+├── app/
+│   ├── __init__.py            # Initializes the Flask app
+│   ├── routes.py              # Contains Flask routes
+│   ├── socketio_handlers.py   # Contains SocketIO handlers
+│   ├── models.py              # Contains database models (if using a database)
+│   ├── templates/             # Contains HTML templates
+│   │   ├── index.html         # Example HTML template
+│   │   └── ...
+│   ├── static/                # Contains static files (CSS, JavaScript, images)
+│   │   ├── style.css          # Example CSS file
+│   │   └── ...
+│   └── other_module.py        # Other modules if needed
+│
+│
+├── config.py                   # Configuration settings
+├── requirements.txt            # List of Python dependencies
+└── run.py                      # Main entry point of your Flask application

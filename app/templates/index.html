@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Nix Package Explorer and Layer Generator - Landing Page</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/config_button.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/tree.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 50px;
+        }
+
+        .landing-button {
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Nix Package Explorer and Layer Generator</h1>
+        <p>Created by: John Burtt</p>
+        <p>Description: Optimizing Nix layers enhances build performance and reduces disk space usage by minimizing
+            redundant dependencies, <br>leading to faster deployments and simplified maintenance of Nix environments. This
+            ensures consistent builds, improves reproducibility, <br>and streamlines development workflows.</p>
+    </header>
+    <div class="button-container">
+        <a class="landing-button btn btn-primary" href="/package_explorer">Package Explorer</a>
+        <a class="landing-button btn btn-primary" href="/layer_generator">Layer Generator</a>
+    </div>
+</body>
+
+</html>
