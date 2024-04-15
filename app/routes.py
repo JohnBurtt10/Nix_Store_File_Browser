@@ -8,7 +8,6 @@ from . import dependency_analyzer
 from . import jobset_explorer
 
 
-
 # hydra config
 hydra_url = "http://hydra.clearpath.ai/"
 hydra = Hydra(url=hydra_url)
@@ -124,30 +123,12 @@ def display_dict(timestamp):
     except Exception as e:
         print("An error occurred:", e)
 
-    # Define your container data as a Flask variable
-    container_data = {
-        'container1': [
-            {'layer': 'Layer 1', 'packages': [
-                'Package A', 'Package B'], 'newData': '10GB'},
-            {'layer': 'Layer 2', 'packages': [
-                'Package C', 'Package D'], 'newData': '5GB'}
-        ],
-        'container2': [
-            {'layer': 'Layer 1', 'packages': [
-                'Package X', 'Package Y'], 'newData': '8GB'},
-            {'layer': 'Layer 2', 'packages': ['Package Z'], 'newData': '3GB'}
-        ]
-        # Add more containers and their layers as needed
-    }
-
     # Generate a new endpoint based on the timestamp
 
     print(loaded_dict)
 
     # Render the template with the data and newly generated endpoint
     return render_template('display.html', container_data=loaded_dict)
-
-
 
 
 @app.route('/get_jobsets/<project_name>')
@@ -158,8 +139,6 @@ def get_jobsets(project_name):
     jobsets = hydra.get_jobsets(project=project_name)
 
     return jsonify(jobsets)
-
-# TODO: name?
 
 
 @app.route('/get_whats_new/<project_name>/<jobset1>/<jobset2>')
@@ -223,20 +202,7 @@ def get_dependencies_of_jobs(project_name, jobset1, jobset2):
     (final_hash_map, final_count_hash_map) = jobset_explorer.compare_and_process_builds(
         project_name=project_name, hydra=hydra, jobs=jobs, jobset1=jobset1, jobset2=jobset2)
 
-    # store_path_entropy_dict = cache_utils.get_cached_or_fetch_store_path_entropy_dict(
-    #     hydra, project_name, traverse_jobset, False, False, store_path_entropy_dict_cache)
-
     # Sorting the dictionary by values
-    # sorted_dict = dict(
-    #     sorted(store_path_entropy_dict.items(), key=lambda item: item[1]))
-
-    entropy_position_dict = {}
-
-    # Creating a new dictionary with positions
-    # entropy_position_dict = {key.split('-', 1)[1]: key for position, (key, _) in enumerate(sorted_dict.items(), 1)}
-
-    # combined_dict = {key: {
-    #     'file_size': final_hash_map[key], 'count': final_count_hash_map[key], 'entropy_position': entropy_position_dict.get(key, 0)} for key in final_hash_map}
 
     combined_dict = {key: {
         'file_size': final_hash_map[key], 'count': final_count_hash_map[key]} for key in final_hash_map}

@@ -138,19 +138,6 @@ async def async_get_cached_or_fetch_build_info(hydra, cache, build):
     return build_info
 
 
-async def async_get_cached_or_fetch_jobset_evals(hydra, cache, project_name, jobset_name):
-    if False and (project_name, jobset_name) in cache:
-        print(f"get_cached_or_fetch_jobset_evals cache hit!")
-        return cache[(project_name, jobset_name)]
-
-    async with aiohttp.ClientSession() as session:
-        # Assuming hydra.get_jobset_evals is an asynchronous function
-        data = await hydra.get_jobset_evals(session, project=project_name, jobset_name=jobset_name)
-
-    cache[(project_name, jobset_name)] = data
-    return data
-
-
 def get_cached_or_fetch_out_path(build_info, out_path_cache):
     if False and build_info in out_path_cache:
         out_path = out_path_cache[build_info]

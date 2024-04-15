@@ -213,8 +213,6 @@ def explore_packages(data):
                                                                  n=selected_quantity,
                                                                  # TODO fix names
                                                                  filters=filters,
-                                                                 #  minimum_entropy=minimum_entropy,
-                                                                 #  minimum_file_size=minimum_file_size,
                                                                  print_dependency_weight=False)
 
     socketio.emit('result', [top_n_values, sorted_jobsets], namespace='/test')

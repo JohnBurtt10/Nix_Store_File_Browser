@@ -134,69 +134,6 @@ def fetch_and_compare_nix_paths(update_progress, start_date, end_date):
         my_other_dict[key.replace(".drv", "")] = len(my_dict[key])
     return my_other_dict
 
-# def fetch_references_and_file_size(update_progress, start_date, end_date):
-#     url = "https://gitlab.clearpathrobotics.com/sweng-infra/nix.git"
-#     pattern = "refs/tags/2.32*"
-#     lines = git_ls_remote(url, pattern)
-
-#     references_dict = {}
-
-#     file_size_dict = {}
-
-#     filtered_lines = []
-
-#     for line in lines:
-#         tag_name = extract_tag_name(line)
-#         # Extract timestamp from the tag name
-#         timestamp_str = tag_name.split('-')[1]
-#         tag_date = datetime.strptime(timestamp_str, '%Y%m%d%H%M%S')
-#         if start_date <= tag_date <= end_date:
-#             filtered_lines.append(line)
-
-#     with tqdm(total=len(filtered_lines), desc="progress_bar_desc", unit="builds") as pbar:
-#         for line in filtered_lines:
-#             tag_name = extract_tag_name(line)
-#             # Extract timestamp from the tag name
-#             timestamp_str = tag_name.split('-')[1]
-#             tag_date = datetime.strptime(timestamp_str, '%Y%m%d%H%M%S')
-#             if start_date <= tag_date <= end_date:
-#                 if False and tag_name in fetch_and_compare_nix_paths_cache:
-#                     _my_dict = fetch_and_compare_nix_paths_cache[tag_name]
-#                 else:
-#                     # _my_dict = {}
-#                     command = f"nix path-info clearpath/{tag_name}#sdk.setup-dev --recursive --derivation --json"
-#                     # Execute the commands
-#                     try:
-#                         result = subprocess.run(
-#                             command, capture_output=True, text=True, check=True, shell=True)
-#                         # Parse JSON results
-#                         data = json.loads(result.stdout)
-
-#                     except subprocess.CalledProcessError as e:
-#                         print(f"Error: {e}")
-
-#                     # Compare paths and hashes
-#                     for item in data:
-#                         print(item)
-#                         # path = item["path"]
-#                         # references = item["references"]
-#                         # file_size = item["fileSize"]
-#                         # filename = extract_filename_from_path(path)
-
-#                         # if filename not in references_dict:
-#                         #     references_dict[filename] = references
-#                         # if filename not in file_size_dict:
-#                         #     file_size_dict[filename] = file_size
-
-#                     # fetch_and_compare_nix_paths_cache[tag_name] = _my_dict
-
-#                     # my_dict = merge_lists(my_dict, _my_dict)
-
-#             pbar.update(1)
-#             update_progress("Calculating entropy based on the references from the remote Git repo...", 100*(pbar.n)/len(filtered_lines))
-
-#     return references_dict, file_size_dict
-
 
 def main():
     start_date = datetime.strptime("2022-08-15", '%Y-%m-%d')

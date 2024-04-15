@@ -15,6 +15,7 @@ from .get_file_sizes_by_path import get_file_sizes_by_path
 from .fetch_and_compare_nix_paths import fetch_and_compare_nix_paths
 from datetime import datetime
 
+
 def retrieve_and_check_cancel():
     return False
 
@@ -188,7 +189,7 @@ def _generate_layers(hydra, update_progress, report_error, send_layer, update_la
                      minimum_layer_recursive_file_size, maximum_layer_recursive_file_size,
                      start_date, end_date, project_name, jobset, package_file_size):
 
-    fokwfko = {}
+    entropy_overlap_dict = {}
 
     parsed_start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%S.%fZ')
     parsed_end_date = datetime.strptime(end_date, '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -197,7 +198,7 @@ def _generate_layers(hydra, update_progress, report_error, send_layer, update_la
 
     return __generate_layers(hydra, update_progress, report_error,
                              send_layer, update_layer_progress,
-                             project_name, jobset, entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size)
+                             project_name, jobset, entropy_dict, entropy_overlap_dict, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size)
 
 
 def check_intersection(list1, list2):
@@ -223,7 +224,8 @@ def remove_common_elements(list1, list2):
     return result
 
 
-def find_highest_average_package_combination(packages, answer, combination, is_creating_zero_entropy_layers, fokwfko, store_path_entropy_dict, threshold, not_visted):
+# This is not used for now, but may be in the future (see More Sophisticated Entropy Calculation in the Road Map section of the README)
+def find_highest_average_package_combination(packages, answer, combination, is_creating_zero_entropy_layers, entropy_overlap_dict, store_path_entropy_dict, threshold, not_visted):
     highest = 0
     best_combination = None
     done = False
@@ -236,8 +238,8 @@ def find_highest_average_package_combination(packages, answer, combination, is_c
             package_list = combination + \
                 tuple(answer[(combination, is_creating_zero_entropy_layers)]['packages']
                       ) if combination in answer else combination
-            average = fwfo(package_list, fokwfko,
-                           store_path_entropy_dict)
+            average = calculate_entropy_overlap(package_list, entropy_overlap_dict,
+                                                store_path_entropy_dict)
 
             if threshold - average > 15:
                 if not close and best_combination is not None:
@@ -264,7 +266,7 @@ def strip_hash(string):
 
 
 #
-# def fwfo(package_list, fokwfko, store_path_entropy_dict):
+# def calculate_entropy_overlap(package_list, entropy_overlap_dict, store_path_entropy_dict):
 #     sum = 0
 #     count = 0
 #     for package in package_list:
@@ -272,15 +274,10 @@ def strip_hash(string):
 #             if p == package:
 #                 continue
 #             count = count + 1
-#             numerator = fokwfko[p.split(
+#             numerator = entropy_overlap_dict[p.split(
 #                 '-', 1)[1]].get(package.split('-', 1)[1], 0)
 #             denominator = store_path_entropy_dict.get(
-#                 package.split('-', 1)[1], 0)
-
-#             # REMOVOEOEOROR
-
-#             if (denominator == 0):
-#                 denominator = 1
+#                 package.split('-', 1)[1], 0)ive
 
 #             sum += numerator/denominator
 #     if count == 0:
@@ -341,8 +338,10 @@ def update_relative_accounted_for_dict(recursive_dependencies_dict, package_file
         for item in accounted_for_packages_in_jobs[job]:
             accounted_for_file_size += package_file_size[item]
         if job in combination or job not in relative_accounted_for_dict:
-            relative_accounted_for_dict[job] = accounted_for_file_size / total_file_size
-        print(f"job={job}, 100*accounted_for_file_size/total_file_size={100*accounted_for_file_size/total_file_size}")
+            relative_accounted_for_dict[job] = accounted_for_file_size / \
+                total_file_size
+        print(
+            f"job={job}, 100*accounted_for_file_size/total_file_size={100*accounted_for_file_size/total_file_size}")
         if total_file_size != 0 and accounted_for_file_size/total_file_size < 0.98:
             is_accounted_for_file_size_threshold_satisified = False
 
@@ -377,7 +376,7 @@ def limit_recursive_dependencies(recursive_dependencies_dict, limit, package_fil
 
 def __generate_layers(hydra, update_progress, report_error,
                       send_layer, update_layer_progress,
-                      project_name, jobset, store_path_entropy_dict, fokwfko, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size):
+                      project_name, jobset, store_path_entropy_dict, entropy_overlap_dict, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size):
 
     answer = {}
     recursive_added_job = {}
@@ -412,8 +411,6 @@ def __generate_layers(hydra, update_progress, report_error,
         master_list[(job, False)] = non_zero_entropy_packages
         other_dict[job] = copy.deepcopy(_recursive_dependencies_dict)
 
-    # TODO: take stuff out of while loop
-    # make case in shared entropy thing for all 0 and take full package thing then pass in packages
     for i in range(2):
         # iteration = 0
         relative_accounted_for_dict = {}
@@ -429,7 +426,7 @@ def __generate_layers(hydra, update_progress, report_error,
         update_progress("Trying all possible layers...", percentage_done)
 
         combination_lengths = [1, 7, 6, 5, 4, 3, 2, 1]
-        idk = 0
+        combination_length_iteration = 0
 
         total_iterations = 0
 
@@ -443,15 +440,13 @@ def __generate_layers(hydra, update_progress, report_error,
                 # needed without while loop
                 for_loop_flag = False
                 break
-            idk = idk + 1
+            combination_length_iteration = combination_length_iteration + 1
 
             combinations_list = list(
                 combinations(job_list, combination_length))
 
             for combination in reversed(combinations_list):
 
-                # if len(answer) > 7:
-                #     return answer, recursive_dependencies_dict
                 current_iteration += 1
                 percentage_done = (current_iteration /
                                    total_iterations) * 100
@@ -473,6 +468,7 @@ def __generate_layers(hydra, update_progress, report_error,
 
                     combination_recursive_dependencies = {}
 
+                    # hardcoding to just look at intersection of packages (no overlap mode)
                     if True:
                         combination_recursive_dependencies = other_dict[combination[0]]
                         for job in combination:
@@ -522,7 +518,7 @@ def __generate_layers(hydra, update_progress, report_error,
                         # length will be looked at first
                         # if iteration < 20:
                         #     continue
-                        if idk == 1:
+                        if combination_length_iteration == 1:
                             continue
 
                     not_visted = packages
@@ -530,13 +526,14 @@ def __generate_layers(hydra, update_progress, report_error,
                         if for_loop_flag:
                             break
                         # if is_creating_zero_entropy_layers:
-                        dd = packages
+                        _packages = packages
                         # else:
-                        #     dd = find_highest_average_package_combination(filtered_packages, answer, combination, is_creating_zero_entropy_layers, fokwfko, store_path_entropy_dict, threshold, not_visted)
-                        #     if dd is None:
+                        #     _packages = find_highest_average_package_combination(filtered_packages, answer, combination, is_creating_zero_entropy_layers, entropy_overlap_dict, store_path_entropy_dict, threshold, not_visted)
+                        #     if _packages is None:
                         #         continue
 
-                        not_visted = remove_common_elements(not_visted, dd)
+                        not_visted = remove_common_elements(
+                            not_visted, _packages)
 
                         individual_job_package_lists = []
 
@@ -562,10 +559,6 @@ def __generate_layers(hydra, update_progress, report_error,
                         if done:
                             done = False
 
-                        # TODO: CHECK WHICH JOBS ACTUALLY NEED THE PACKAGES ADDED
-
-                        # TODO: INVESTIGATE WHY SCREEN-SHELL IS BEING ADDED WITH ACCOUNTED_FOR_PACKAGE_FILE_SIZE=0 and OVERHEAD!=0
-
                         update_accounted_for_packages(recursive_dependencies_dict, recursive_added_job,
                                                       accounted_for_packages_in_jobs, selected_packages, other_dict, individual_job_package_lists, package_file_size)
 
@@ -587,8 +580,8 @@ def __generate_layers(hydra, update_progress, report_error,
                                    ]['total_recursive_file_size'] += total_recursive_file_size
 
                             if not is_creating_zero_entropy_layers:
-                                # answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['average'] = fwfo(
-                                #     answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['packages'], fokwfko, store_path_entropy_dict)
+                                # answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['average'] = calculate_entropy_overlap(
+                                #     answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['packages'], entropy_overlap_dict, store_path_entropy_dict)
                                 answer[(combination, is_creating_zero_entropy_layers,
                                         combination_layer_count_dict[combination])]['average'] = 0
 
@@ -596,8 +589,8 @@ def __generate_layers(hydra, update_progress, report_error,
                         else:
 
                             average = 0 if is_creating_zero_entropy_layers else 0
-                            # fwfo(
-                            #     set(selected_packages), fokwfko, store_path_entropy_dict)
+                            # calculate_entropy_overlap(
+                            #     set(selected_packages), entropy_overlap_dict, store_path_entropy_dict)
                             answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])] = {'overhead': overhead, 'packages': set(selected_packages),
                                                                                                                                  'accounted_for_packages_file_size': accounted_for_packages_file_size, 'average': average,
                                                                                                                                  'relative_accounted_for': relative_accounted_for, 'total_recursive_file_size': total_recursive_file_size}
@@ -616,23 +609,23 @@ def __generate_layers(hydra, update_progress, report_error,
                                         'accounted_for_packages_file_size': accounted_for_packages_file_size}
 
                         layers = {}
-                        x = 0
-                        for (a, b, c) in answer:
+                        for (_combination, _is_creating_zero_entropy_layers, _index) in answer:
                             layer = {}
-                            layer = answer[(a, b, c)].copy()
-                            layer['is_creating_zero_entropy_layers'] = b
+                            layer = answer[(
+                                _combination, _is_creating_zero_entropy_layers, _index)].copy()
+                            layer['is_creating_zero_entropy_layers'] = _is_creating_zero_entropy_layers
                             file_size_accounted_for_relative = layer['relative_accounted_for']
-                            x += file_size_accounted_for_relative
                             layer['packages'] = list(layer['packages'])
                             layer['file_size_accounted_for_relative'] = file_size_accounted_for_relative/len(
                                 job_whitelist)
 
-                            layers[str((a, c))] = layer
+                            layers[str((_combination, _index))] = layer
 
                         progress = {'is_creating_zero_entropy_layers': is_creating_zero_entropy_layers, 'layer_count': len(
                             answer), 'overhead': total_overhead, 'relative_accounted_for_dict': relative_accounted_for_dict, 'lowest_average': lowest_average, 'new_packages': new_packages, 'layers': layers}
                         update_layer_progress(progress)
 
+                        # Hard coding 1 package per layer for now
                         if True or (combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination]) in answer and \
                                 answer[(combination, is_creating_zero_entropy_layers, combination_layer_count_dict[combination])]['total_recursive_file_size'] >= maximum_layer_recursive_file_size_bytes:
                             # print(
@@ -677,7 +670,7 @@ def main():
     # Example: Logging in
     hydra.login(username="administrator", password="clearp@th")
 
-    store_path_entropy_dict, fokwfko = get_cached_or_fetch_store_path_entropy_dict(
+    store_path_entropy_dict, entropy_overlap_dict = get_cached_or_fetch_store_path_entropy_dict(
         hydra, "v2-32-devel", update_progress, approximate_uncalculated_jobsets_mode_enabled=True)
 
     values = [50, 100, 200, 400, 800, 1600, 2000]
@@ -685,7 +678,7 @@ def main():
     for v in values:
         answers = __generate_layers(hydra, update_progress, report_error,
                                     send_layer, update_layer_progress,
-                                    project_name, jobset, store_path_entropy_dict, fokwfko, v)
+                                    project_name, jobset, store_path_entropy_dict, entropy_overlap_dict, v)
         print(f"v={v}, len(answers)={len(answers)}")
 
 

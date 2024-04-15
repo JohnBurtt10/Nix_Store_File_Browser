@@ -1,18 +1,5 @@
-.column {
-    box-sizing: border-box;
-    width: 50%;
-    float: left;
-    padding: 20px;
-}
-
 .inline-paragraph {
     display: inline;
     margin-right: 10px;
     /* Optional: Add some spacing between paragraphs */
-}
-
-.other-close-button {
-    bottom: 50px;
-    color: #ff0000;
-
 }

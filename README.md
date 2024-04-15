@@ -57,10 +57,10 @@ Optimizing Nix layers enhances build performance and reduces disk space usage by
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
 ## Visuals
-![alt text](landing_page.png, "Landing Page")
-![alt text](package_explorer.png, "Package Explorer")
-![alt text](layer_generator.png, "Layer Generator")
-[text](../../layer_generator, "Layer Generator Demo")
+![alt text](landing_page.png "Landing Page")
+![alt text](package_explorer.png "Package Explorer")
+![alt text](layer_generator.png "Layer Generator")
+[text](../../layer_generator "Layer Generator Demo")
 
 ## Installation
 Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
@@ -76,15 +76,14 @@ Tell people where they can go to for help. It can be any combination of an issue
 <!-- # Git ls-remote data instead of hydra data
 Like how the entropy for the `Layer Generator` tool is now calculated with the references from the remote repository instead of through Hydra, ` -->
 
-# Replacing Flask
-While Flask is simplistic, flexible and minimalistic, if this project were to be built upon any further, a more robust framework should be used in place of it such as
-Django, which offers a comprehensive set of built-in features, including an ORM, authentication system, and admin interface
+### Replacing Flask
+While Flask is simplistic, flexible and minimalistic, if this project were to be built upon any further, a more robust framework should be used in place of it such as Django, which offers a comprehensive set of built-in features, including an ORM, authentication system, and admin interface
 
-# More Sophisticated Entropy Calculation
-Because of how the git ls-remote entropy calculation is currently done which is by keeping track of 
+### More Sophisticated Entropy Calculation
+Because of how the git ls-remote entropy calculation is currently done which is by keeping track of all of the store paths for a given package and then returning this count, how often package x changes when package y changes is not calculated like how it is in the Hydra API based on entropy calculation which is useful for creating groups of packages to be used for layers.
 
-
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Simulating Development Cycle to Test Build Efficiency
+There should be the ability to simulate the generated layers over a development cycle to test how much build storage it requires so that the client can adjust the configurations accordingly. Better yet, it should automatically optimize the entropy calculation start and end dates as well as the minimum and maximum layer size such that it requires as little build storage as possible (and does not exceed a layer count limited specified by the client?).
 
 ## Contributing
 State if you are open to contributions and what your requirements are for accepting them.

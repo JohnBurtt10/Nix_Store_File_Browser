@@ -38,6 +38,7 @@ _generate_layers_cache_directory = "cache/_generate_layers_cache_directory"
 store_path_file_size_cache_directory = "cache/store_path_file_size_cache_directory"
 fetch_and_compare_nix_paths_cache_directory = "cache/fetch_and_compare_nix_paths_cache_directory"
 package_file_size_cache_diretory = "cache/package_file_size_directory"
+build_info_cache_directory = "cache/build_info_cache_directory"
 cache = Cache(my_cache_directory)
 dependency_weight_cache = Cache(dependency_weight_cache_directory)
 first_sort_cache = Cache(first_sort_cache_directory)
@@ -76,6 +77,7 @@ _generate_layers_cache = Cache(_generate_layers_cache_directory)
 store_path_file_size_cache = Cache(store_path_file_size_cache_directory)
 fetch_and_compare_nix_paths_cache = Cache(fetch_and_compare_nix_paths_cache_directory)
 package_file_size_cache = Cache(package_file_size_cache_diretory)
+build_info_cache_directory = Cache(build_info_cache_directory)
 
 # Define __all__ to include all names
 __all__ = [
@@ -116,5 +118,6 @@ __all__ = [
     "store_path_file_size_cache",
     "fetch_and_compare_nix_paths_cache",
     "generate_layers_cache",
-    "package_file_size_cache"
+    "package_file_size_cache",
+    "build_info_cache"
 ]
