@@ -1,5 +1,4 @@
 from .cache_directories import *
-import re
 from .hydra_client import HydraResponseException, Hydra
 from . import cache_utils
 from .raw_data_utilities import extract_section

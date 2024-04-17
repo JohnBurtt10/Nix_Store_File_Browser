@@ -1,7 +1,6 @@
 # nar caching
 from .hydra_client import Hydra, HydraResponseException
 from .cache_directories import *
-import aiohttp
 import asyncio
 from .raw_data_utilities import extract_section
 from .group_items import group_items
@@ -10,8 +9,6 @@ import time
 from .get_sorted_jobsets import get_sorted_jobsets
 from tqdm import tqdm
 from .get_best_partial_jobsets_cache_key import get_best_partial_jobsets_cache_key
-from .update_file_variable_value import update_file_variable_value
-
 
 # Exponential backoff parameters
 max_retries = 2
@@ -202,30 +199,30 @@ def get_cached_or_compute_reverse_dependency_weight(project_name, jobset, revers
 
     else:
 
-        def update_progress(task, progress):
-            pass
+        # def update_progress(task, progress):
+        #     pass
 
-        def report_error(error):
-            pass
+        # def report_error(error):
+        #     pass
 
         references_dict = {}
 
         file_size_dict = {}
 
-        visited = {}
-        traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
+        visited_store_paths = {}
+        traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                         lambda job, raw_data: _populate_references_and_file_size(
                             raw_data, references_dict, file_size_dict, jobset, job),
                         only_visit_once_enabled=True,
                         recursive_mode_enabled=True,
                         whitelist_enabled=False,
                         exponential_back_off_enabled=False,
-                        visited=visited,
+                        visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
 
         # TODO: Why are the dicts acting immutable??
-        traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
+        traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                         lambda job, raw_data: count_descendants(hydra,
                                                                 raw_data,
                                                                 reverse_dependency_weight_dict,
@@ -246,26 +243,26 @@ def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_wei
 
     else:
 
-        def update_progress(task, progress):
-            pass
+        # def update_progress(task, progress):
+        #     pass
 
-        def report_error(error):
-            pass
+        # def report_error(error):
+        #     pass
 
         references_dict = {}
 
         file_size_dict = {}
 
-        visited = {}
+        visited_store_paths = []
 
-        traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
+        traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                         lambda job, raw_data: _populate_references_and_file_size(
                             raw_data, references_dict, file_size_dict, jobset, job),
                         only_visit_once_enabled=True,
                         recursive_mode_enabled=True,
                         whitelist_enabled=False,
                         exponential_back_off_enabled=False,
-                        visited=visited,
+                        visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
 
@@ -290,7 +287,7 @@ def general_cache_function(hydra, update_progress, report_error, project_name, t
 
     processed_jobsets = []
 
-    visited = []
+    visited_store_paths = []
 
     partial_jobset_lists = list(cache.iterkeys())
 
@@ -302,30 +299,28 @@ def general_cache_function(hydra, update_progress, report_error, project_name, t
         partial_cache_key = tuple(best_list)
 
         if partial_cache_key in cache:
-            (result_dicts, visited) = cache[partial_cache_key]
+            (result_dicts, visited_store_paths) = cache[partial_cache_key]
 
             # result_dicts = cache[partial_cache_key]
     with tqdm(initial=0 if best_list is None else len(best_list), disable=not progress_bar_enabled, total=len(sorted_jobsets), desc=progress_bar_desc, unit="jobsets") as pbar:
         update_progress(progress_bar_desc+"...", 100 *
                         pbar.n/len(sorted_jobsets))
-        update_file_variable_value('proceed', False)
         for jobset in remaining_jobsets:
             _result_dicts = [{} for _ in args]
             if not traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
                                    lambda job, raw_data: update_func(
-                                       raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited=visited, cancellable=True, unique_packages_enabled=False):
+                                       raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited_store_paths=visited_store_paths, cancellable=True, unique_packages_enabled=False):
                 update_progress("", 0)
                 print(
                     f"Proceeding without remaining {len(sorted_jobsets)-pbar.n} jobsets...")
                 return result_dicts
             processed_jobsets.append(jobset)
 
-            # Using enumerate to iterate through the list with index
             for index, value in enumerate(args):
                 result_dicts[index] = value(
                     result_dicts[index], _result_dicts[index])
             cache_key = tuple(processed_jobsets)
-            cache[cache_key] = (result_dicts, visited)
+            cache[cache_key] = (result_dicts, visited_store_paths)
             pbar.update(1)
             update_progress(progress_bar_desc+"...", 100 *
                             pbar.n/len(sorted_jobsets))
@@ -400,7 +395,7 @@ def update_reverse_dependencies_dict(raw_data, dicts, jobset, job):
     reverse_dependencies_dict = dicts[0]
     grouped_items = group_items(references, {})
 
-    for key, group in grouped_items.items():
+    for key in grouped_items:
 
         dependency = key
 

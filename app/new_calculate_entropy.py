@@ -10,20 +10,7 @@ from .get_jobset_builds import get_jobset_builds
 from .get_best_partial_jobsets_cache_key import get_best_partial_jobsets_cache_key
 from .job_whitelist import job_whitelist
 from .sum_dicts import sum_dicts
-import pickle
-from .update_file_variable_value import update_file_variable_value
-from .traverse_jobset import traverse_jobset as tra
 from .raw_data_utilities import extract_section
-
-def retrieve_and_check_cancel():
-    # Retrieve variables from the file
-    with open('data.pkl', 'rb') as f:  # Open file in binary read mode
-        loaded_data = pickle.load(f)
-    if loaded_data['proceed']:
-        update_file_variable_value('proceed', False)
-        return True
-    if loaded_data['cancel']:
-        return True
     
 def report_error(error):
     pass
@@ -32,23 +19,6 @@ def _populate_references(raw_data, references_dict, jobset, job):
     store_path = extract_section(raw_data=raw_data, keyword="StorePath")[0]
     references = extract_section(raw_data=raw_data, keyword="References")
     references_dict[store_path[len("/nix/store/"):]] = references
-
-def populate_references(hydra, project_name, jobset, references_dict, visited):
-     
-     def update_progress(task, progress):
-         pass
-     
-     def report_error(error):
-         pass
-     tra(hydra, update_progress, report_error, project_name, jobset,
-                            lambda job, raw_data: _populate_references(
-                                raw_data, references_dict, jobset, job), 
-                                only_visit_once_enabled=True,
-                                recursive_mode_enabled=True,
-                                whitelist_enabled=False,
-                                exponential_back_off_enabled=False,
-                                visited=visited,
-                                cancellable=True)
 
 def get_cached_or_fetch_store_path_entropy_dict(hydra, project_name, update_progress, approximate_uncalculated_jobsets_mode_enabled=False, check_cancel_enabled=True):
 
@@ -123,10 +93,6 @@ def calculate_entropy(hydra,
 
     references_dict = {}
     
-    visited = []
-
-    # populate_references(hydra, project_name, remaining_jobsets[0], references_dict, visited)
-
     with tqdm(initial=initial, total=len(sorted_jobsets), desc="Computing entropy", unit="jobsets") as pbar:
         for jobset in remaining_jobsets:
 
@@ -138,8 +104,6 @@ def calculate_entropy(hydra,
 
             print(f"jobset={jobset}, next_jobset={next_jobset}")
             
-            # populate_references(hydra, project_name, next_jobset, references_dict, visited)
-
             _store_path_entropy_dict = {}
             if not traverse_jobset(hydra, project_name, jobset, next_jobset,
                             _store_path_entropy_dict, update_progress, current_iteration, total_iterations, references_dict, check_cancel_enabled):
@@ -270,15 +234,8 @@ def entropy_compare_jobset_recursive(hydra, job, store_path_entropy_dict, store_
 
     grouped_items = compare_and_group_references(references1, references2)
 
-    if check_cancel_enabled and retrieve_and_check_cancel():
-        return False
-
-    # if "screen-shell" in store_name1:
-    #     print(f"references: {references1}")
-
-    # if "screen-rc" in store_name1:
-    print(f"store_name1: {store_name1}")
-    # print(f"path: {path}\n")
+    # if check_cancel_enabled and file_exists():
+    #     return False
 
     store_name1_without_timestamp = remove_timestamp(store_name1)
     store_name2_without_timestamp = remove_timestamp(store_name2)

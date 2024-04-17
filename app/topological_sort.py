@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 def topological_sort(graph, recursion_limit=250):
     visited = set()
     result = []

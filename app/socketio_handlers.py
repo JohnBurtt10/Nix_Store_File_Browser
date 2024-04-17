@@ -7,9 +7,10 @@ from .merge_dicts_with_preference import merge_2d_dicts_with_preference, merge_d
 from .new_calculate_entropy import get_cached_or_fetch_store_path_entropy_dict
 from .get_sorted_jobsets import get_sorted_jobsets
 from .generate_layers import generate_layers
-from .update_file_variable_value import update_file_variable_value
+from .cancel_operation import create_file, file_exists
 from .extract_earliest_latest_values import extract_earliest_latest_values
 from flask_socketio import emit
+from flask import request
 from app import socketio
 import json
 import os
@@ -27,6 +28,7 @@ hydra.login(username="administrator", password="clearp@th")
 @socketio.on('connect', namespace='/test')
 def test_connect():
     print('Client connected')
+
     emit('message', {'data': 'Connected'})
 
 
@@ -37,16 +39,17 @@ def test_disconnect():
 
 @socketio.on('proceed', namespace='/test')
 def proceed():
-    update_file_variable_value('proceed', True)
-
+    pass
 
 @socketio.on('cancel', namespace='/test')
 def cancel():
-    update_file_variable_value('cancel', True)
+    session_id = request.sid
+    create_file(str(session_id))
 
 
 @socketio.on('start_progress', namespace='/test')
 def start_progress(data):
+    session_id = request.sid
     # Unpack parameters from the data dictionary
     start_date = data.get(
         'startDate')
@@ -57,8 +60,8 @@ def start_progress(data):
         'minimumLayerRecursiveFileSize')
     maximum_layer_recursive_file_size = data.get(
         'maximumLayerRecursiveFileSize')
-
-    update_file_variable_value('cancel', False)
+    
+    print(f"start_progress()")
 
     def update_progress(task, progress):
         socketio.emit(
@@ -95,7 +98,7 @@ def start_progress(data):
     socketio.emit('timestamp', current_timestamp, namespace='/test')
 
     answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress,
-                             minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, start_date, end_date)
+                             minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, start_date, end_date, session_id)
 
     # Open the file and write JSON data to it
     with open(file_path, "w") as file:

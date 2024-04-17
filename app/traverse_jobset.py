@@ -5,26 +5,12 @@ from tqdm import tqdm
 import time
 from .job_whitelist import job_whitelist
 from .has_timestamp import has_timestamp
-import pickle
-from .update_file_variable_value import update_file_variable_value
-
-
-
-def retrieve_and_check_cancel():
-    # Retrieve variables from the file
-    with open('data.pkl', 'rb') as f:  # Open file in binary read mode
-        loaded_data = pickle.load(f)
-    if loaded_data['proceed']:
-        update_file_variable_value('proceed', False)
-        return True
-    if loaded_data['cancel']:
-        return True
 
 
 def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, func, recursive_mode_enabled=False,
                     exponential_back_off_enabled=False, only_visit_once_enabled=False, progress_bar_enabled=False,
-                    whitelist_enabled=False, progress_bar_desc="Default progress bar desc", visited_store_paths=[], jobs=[],
-                    cancellable=False, unique_packages_enabled=True, visited_packages=set()):
+                    whitelist_enabled=False, progress_bar_desc="Default progress bar desc", visited=[], jobs=[],
+                    cancellable=False, unique_packages_enabled=True, fowfol=set(), gigmi=set()):
     """
     Traverse a jobset and apply a function to each build.
 
@@ -84,7 +70,7 @@ def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, 
     filtered_builds = []
 
     # if you remove this it reuses the same one
-    visited_store_paths = []
+    visited = []
 
     if whitelist_enabled:
 
@@ -129,12 +115,13 @@ def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, 
             # Removing "/nix/store" from the beginning of the string
             input_string = input_string[len("/nix/store/"):]
 
-            if cancellable and retrieve_and_check_cancel():
-                return False
+            # if cancellable and retrieve_and_check_cancel():
+            #     return False
 
             traverse_jobset_recursive(
                 hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled,
-                whitelist_enabled, 0, visited_store_paths, unique_packages_enabled, visited_packages)
+                whitelist_enabled, 0, visited, unique_packages_enabled, fowfol, gigmi)
+
             pbar.update(1)
             if progress_bar_enabled:
                 if not jobs:
@@ -152,8 +139,8 @@ def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, 
                     update_progress("Getting recursive dependencies for " +
                                     result_string + "...", 100*pbar.n/len(filtered_builds))
 
-            if cancellable and retrieve_and_check_cancel():
-                return False
+            # if cancellable and retrieve_and_check_cancel():
+            #     return False
 
     return True
 
@@ -176,8 +163,7 @@ def strip_hash(string):
     return string.split('-', 1)[1]
 
 
-def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled,
-                              whitelist_enabled, depth, visited_store_paths, unique_packages_enabled, visited_packages):
+def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth, visited, unique_packages_enabled, fowfol, gigmi):
     # filter by timestamp
     # go through images and make groups based on common
     # Splitting the string based on the first hyphen
@@ -198,14 +184,15 @@ def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_ena
                 # TODO: first part of the AND can be removed
                 # only visit a package once (i.e. cpr_base_navigation)
                 if unique_packages_enabled:
-                    if (strip_hash(reference) in visited_packages) and (reference not in visited_store_paths):
+                    if (strip_hash(reference) in fowfol) and (reference not in gigmi):
                         continue
                 # only visit a store path once (i.e. bc3svx54m6q6xwqy83h3kb2favkn9rlp-cpr_base_navigation)
                 if only_visit_once_enabled:
-                    if reference in visited_store_paths:
+                    if reference in visited:
                         continue
-                    visited_packages.add(strip_hash(reference))
-                    visited_store_paths.append(reference)
-                    traverse_jobset_recursive(
-                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled,
-                        depth+1, visited_store_paths, unique_packages_enabled, visited_packages)
+                gigmi.add(reference)
+                fowfol.add(strip_hash(reference))
+                visited.append(reference)
+                traverse_jobset_recursive(
+                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth+1, visited, unique_packages_enabled, fowfol, gigmi)
+
