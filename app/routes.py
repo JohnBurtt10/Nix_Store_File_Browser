@@ -123,10 +123,6 @@ def display_dict(timestamp):
     except Exception as e:
         print("An error occurred:", e)
 
-    # Generate a new endpoint based on the timestamp
-
-    print(loaded_dict)
-
     # Render the template with the data and newly generated endpoint
     return render_template('display.html', container_data=loaded_dict)
 

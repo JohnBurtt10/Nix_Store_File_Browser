@@ -133,6 +133,8 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
         previous_partition_packages = set()
         # keeping track of the packages accounted for by the current partition
         current_partition_packages = set()
+
+        previous_accounted_for_packages = set()
         containerData[job] = []
         partition_count = 0
         # if package_partition_dict[x] = y, then layer x (using the 'packages' field as index) is in partition y
@@ -147,10 +149,16 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
         for index, layer in enumerate(sorted_data):
             layer['total_recursive_file_size'] = get_true_recursive_file_size(
                 hydra, layer, recursive_dependencies_dict)
+
             first_item = next(iter(layer['packages']))
+
             packages = set(recursive_dependencies_dict[first_item]).union(
                 {first_item})
-            new = packages.difference(previous_partition_packages)
+
+            new = packages.difference(previous_accounted_for_packages)
+
+            previous_accounted_for_packages = previous_accounted_for_packages.union(new)
+
             previous_partition_packages = packages.union(
                 previous_partition_packages)
             if not packages.issubset((current_partition_packages.union(new))):
@@ -166,10 +174,10 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
             layer['new_file_size_layer_wise'] = sum
 
             sorted_accounted_for_packages = sorted(list(new), key=lambda x: get_recursive_dependency_weight(
-                x, recursive_dependencies_dict, package_file_size))
+                x, recursive_dependencies_dict, package_file_size))[:10]
 
-            sorted_accounted_for_packages = [
-                item for item in sorted_accounted_for_packages if "ros" in item]
+            # sorted_accounted_for_packages = [
+            #     item for item in sorted_accounted_for_packages if "ros" in item]
 
             layer['accounted_for_packages'] = sorted_accounted_for_packages
 

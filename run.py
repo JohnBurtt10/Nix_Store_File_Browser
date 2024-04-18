@@ -20,4 +20,5 @@ if __name__ == '__main__':
     cleanup_directory("container_layer_view")
 
     # Run the Flask application with SocketIO
-    socketio.run(app, port=int_value, debug=bool_value)
+    # socketio.run(app, host='0.0.0.0', port=int_value, debug=bool_value)
+    socketio.run(app, host='0.0.0.0')

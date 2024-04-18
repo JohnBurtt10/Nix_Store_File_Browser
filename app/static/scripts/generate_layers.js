@@ -81,7 +81,7 @@ function generateLayers() {
     // var numberOfLayers = parseInt(document.getElementById('numberOfLayers').value);
     var minimumLayerRecursiveFileSize = parseInt(document.getElementById('minimumValueSelector').value);
     var maximumLayerRecursiveFileSize = parseInt(document.getElementById('maximumValueSelector').value);
-    var startDate = $('#start-date').datepicker('getDate');    
+    var startDate = $('#start-date').datepicker('getDate');
     var endDate = $('#end-date').datepicker('getDate');
 
 
@@ -95,7 +95,7 @@ function generateLayers() {
 
     socket = io.connect('http://' + document.domain + ':' + location.port + '/test');
 
-    socket.emit('start_progress', data);
+    socket.emit('generate_layers', data);
 
     socket.on('message', function (msg) {
         // console.log(msg.data);
@@ -154,10 +154,6 @@ function generateLayers() {
 
         }
     });
-
-
-    // var previousData = null;
-    // console.log("############### SETTING PREVIOUS DATA TO NULL");
 
     var stop = false;
 
@@ -236,24 +232,24 @@ function generateLayers() {
 
             const recursiveFileSize = (layers[layer]['total_recursive_file_size'] / (1024 * 1024)).toFixed(1);
 
-            packageData[layer] = { 
-                
-            'packages': packages,
+            packageData[layer] = {
 
-            'overhead': overhead,
+                'packages': packages,
 
-            'accountedForFileSizeMagnitude': accountedForFileSizeMagnitude,
+                'overhead': overhead,
 
-            'accountedForFileSizeRelative': accountedForFileSizeRelative,
+                'accountedForFileSizeMagnitude': accountedForFileSizeMagnitude,
 
-            'average': average,
-        
-            'isCreatingZeroEntropyLayers': isCreatingZeroEntropyLayers,
-            
-            'recursiveFileSize': recursiveFileSize,
+                'accountedForFileSizeRelative': accountedForFileSizeRelative,
+
+                'average': average,
+
+                'isCreatingZeroEntropyLayers': isCreatingZeroEntropyLayers,
+
+                'recursiveFileSize': recursiveFileSize,
 
             };
-        
+
         }
 
         createOrUpdatePackageLayers(packageData);
@@ -357,15 +353,9 @@ function generateLayers() {
         displayEndPoint(data);
     });
 
-
-
-    function startProgress() {
-        socket.emit('start_progress');
-    }
-
 }
 
-function displayEndPoint(data) { 
+function displayEndPoint(data) {
     // Define custom endpoint URL
     var customEndpointPath = "/display/" + data;
 
@@ -397,7 +387,6 @@ function displayEndPoint(data) {
 i = 0;
 
 function handleResult(response) {
-    // console.log(response);
     // var i = 0;
     // for (const element of response) {
     const combination = response.combination;
@@ -450,17 +439,6 @@ function handleResult(response) {
     // }
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Usage:
-async function example() {
-    console.log('Before sleep');
-    await sleep(2000); // Sleep for 2000 milliseconds (2 seconds)
-    resetLayerInfo();
-    console.log('After sleep');
-}
 
 function move(targetValue, currentValue, elementId) {
     var elem = document.getElementById(elementId);
@@ -496,12 +474,7 @@ function reset() {
 }
 
 
-// Example usage: move to 80% and stay there
-// move(80);
 
-
-// Example usage:
-// move(0);
 function other_reset(elementId) {
     var elem = document.getElementById(elementId);
     // clearInterval(id);

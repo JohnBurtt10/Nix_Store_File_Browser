@@ -47,7 +47,7 @@ def cancel():
     create_file(str(session_id))
 
 
-@socketio.on('start_progress', namespace='/test')
+@socketio.on('generate_layers', namespace='/test')
 def start_progress(data):
     session_id = request.sid
     # Unpack parameters from the data dictionary
@@ -60,9 +60,6 @@ def start_progress(data):
         'minimumLayerRecursiveFileSize')
     maximum_layer_recursive_file_size = data.get(
         'maximumLayerRecursiveFileSize')
-    
-    print(f"start_progress()")
-
     def update_progress(task, progress):
         socketio.emit(
             'progress', {'task': task, 'progress': round(progress)}, namespace='/test')
