@@ -67,9 +67,9 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
     else:
 
-        if (jobset, "fgl0wfl") in cache:
+        if jobset in reference_file_size_dicts_cache:
 
-            references_dict, file_size_dict = cache[(jobset, "fgl0wfl")]
+            references_dict, file_size_dict = reference_file_size_dicts_cache[jobset]
         else:
 
             references_dict = {}
@@ -88,7 +88,7 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
                             visited=visited,
                             cancellable=True,
                             unique_packages_enabled=False)
-            cache[(jobset, "fgl0wfl")] = references_dict, file_size_dict
+            reference_file_size_dicts_cache[jobset] = references_dict, file_size_dict
 
         recursive_dependencies_dict = get_recursive_dependencies(
             hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True, references_dict=references_dict,
@@ -166,10 +166,10 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
             layer['new_file_size_layer_wise'] = sum
 
             sorted_accounted_for_packages = sorted(list(new), key=lambda x: get_recursive_dependency_weight(
-                x, recursive_dependencies_dict, package_file_size))
+                x, recursive_dependencies_dict, package_file_size))[:10]
 
-            sorted_accounted_for_packages = [
-                item for item in sorted_accounted_for_packages if "ros" in item]
+            # sorted_accounted_for_packages = [
+            #     item for item in sorted_accounted_for_packages if "ros" in item]
 
             layer['accounted_for_packages'] = sorted_accounted_for_packages
 
@@ -347,9 +347,9 @@ def __generate_layers(hydra, update_progress, report_error,
 
     maximum_layer_recursive_file_size_bytes = maximum_layer_recursive_file_size*1024*1024
 
-    if (jobset, "fgl0wfl") in cache:
+    if jobset in reference_file_size_dicts_cache:
 
-        references_dict, file_size_dict = cache[(jobset, "fgl0wfl")]
+        references_dict, file_size_dict = reference_file_size_dicts_cache[jobset]
     else:
 
         references_dict = {}
@@ -368,7 +368,7 @@ def __generate_layers(hydra, update_progress, report_error,
                         visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
-        cache[(jobset, "fgl0wfl")] = references_dict, file_size_dict
+        reference_file_size_dicts_cache[jobset] = references_dict, file_size_dict
 
     for job in job_whitelist:
 
