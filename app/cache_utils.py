@@ -309,7 +309,7 @@ def general_cache_function(hydra, update_progress, report_error, project_name, t
             _result_dicts = [{} for _ in args]
             if not traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
                                    lambda job, raw_data: update_func(
-                                       raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited_store_paths=visited_store_paths, cancellable=True, unique_packages_enabled=False):
+                                       raw_data, _result_dicts, jobset, job), only_visit_once_enabled=True, recursive_mode_enabled=True, whitelist_enabled=whitelist_enabled, exponential_back_off_enabled=exponential_back_off_enabled, visited=visited_store_paths, cancellable=True, unique_packages_enabled=False):
                 update_progress("", 0)
                 print(
                     f"Proceeding without remaining {len(sorted_jobsets)-pbar.n} jobsets...")

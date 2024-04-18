@@ -102,15 +102,15 @@ def __get_recursive_dependencies(package, references_dict, file_size_dict, maxim
     while queue:
         node = queue.popleft()  # Dequeue the first node from the queue
 
-        if node in recursive_dependencies:
-            continue
+        # if node in recursive_dependencies:
+        #     continue
 
         # Process the node here (e.g., get references and file size)
         references = references_dict[node]
 
         # Add child nodes to the queue
         for child in references:
-            if child != package:
+            if child != package and child not in recursive_dependencies:
                 child_file_size = file_size_dict[child]
                 if maximum_recursive_file_size:
                     if child_file_size + recursive_file_size >= maximum_recursive_file_size:
