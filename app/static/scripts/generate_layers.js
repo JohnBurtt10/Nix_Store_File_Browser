@@ -149,10 +149,9 @@ function generateLayers() {
     });
 
     socket.on('error', function (data) {
-        var errorCode = data.error;
-        if (errorCode == 1) {
-
-        }
+        console.log('Encountered exception while generating layers: ', data);
+        showErrorBanner();
+        reset();
     });
 
     var stop = false;

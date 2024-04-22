@@ -65,6 +65,21 @@ def write_list_to_python_file(my_list, extra_info, directory, timestamp):
         # Write the list to the file in Python format
         file.write(f'{extra_info} = {json.dumps(my_list, indent=2)}\n')
 
+def write_dict_to_python_file(my_dict, extra_info, directory, timestamp):
+
+    # Create the file name with the timestamp and extra information
+    file_name = f'dict_output_{extra_info}.py'
+
+    # Join the directory path with the file name
+    file_path = os.path.join(directory, timestamp, file_name)
+
+    os.makedirs(os.path.join(directory, timestamp), exist_ok=True)
+
+    # Open the file for writing
+    with open(file_path, 'w') as file:
+        # Write the list to the file in Python format
+        file.write(f'{extra_info} = {json.dumps(my_dict, indent=2)}\n')
+
 
 def write_layer_to_file(image_names, overhead, packages, directory, count, timestamp):
     # Create a dictionary to store the information

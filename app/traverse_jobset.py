@@ -9,8 +9,8 @@ from .has_timestamp import has_timestamp
 
 def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, func, recursive_mode_enabled=False,
                     exponential_back_off_enabled=False, only_visit_once_enabled=False, progress_bar_enabled=False,
-                    whitelist_enabled=False, progress_bar_desc="Default progress bar desc", visited=[], jobs=[],
-                    cancellable=False, unique_packages_enabled=True, fowfol=set(), gigmi=set()):
+                    whitelist_enabled=False, progress_bar_desc="Default progress bar desc", jobs=[],
+                    cancellable=False, unique_packages_enabled=True, stripped_references_visited=set(), references_visited=set()):
     """
     Traverse a jobset and apply a function to each build.
 
@@ -69,8 +69,8 @@ def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, 
 
     filtered_builds = []
 
-    # if you remove this it reuses the same one
-    visited = []
+    # this is maintained completely by traverse_jobset() (not a method parameter) 
+    visited = set()
 
     if whitelist_enabled:
 
@@ -120,7 +120,7 @@ def traverse_jobset(hydra, update_progress, report_error, project_name, jobset, 
 
             traverse_jobset_recursive(
                 hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled,
-                whitelist_enabled, 0, visited, unique_packages_enabled, fowfol, gigmi)
+                whitelist_enabled, 0, visited, unique_packages_enabled, stripped_references_visited, references_visited)
 
             pbar.update(1)
             if progress_bar_enabled:
@@ -163,7 +163,7 @@ def strip_hash(string):
     return string.split('-', 1)[1]
 
 
-def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth, visited, unique_packages_enabled, fowfol, gigmi):
+def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth, visited, unique_packages_enabled, stripped_references_visited, references_visited):
     # filter by timestamp
     # go through images and make groups based on common
     # Splitting the string based on the first hyphen
@@ -184,15 +184,15 @@ def traverse_jobset_recursive(hydra, func, job, input_string, recursive_mode_ena
                 # TODO: first part of the AND can be removed
                 # only visit a package once (i.e. cpr_base_navigation)
                 if unique_packages_enabled:
-                    if (strip_hash(reference) in fowfol) and (reference not in gigmi):
+                    if (strip_hash(reference) in stripped_references_visited) and (reference not in references_visited):
                         continue
                 # only visit a store path once (i.e. bc3svx54m6q6xwqy83h3kb2favkn9rlp-cpr_base_navigation)
                 if only_visit_once_enabled:
                     if reference in visited:
                         continue
-                gigmi.add(reference)
-                fowfol.add(strip_hash(reference))
-                visited.append(reference)
+                references_visited.add(reference)
+                stripped_references_visited.add(strip_hash(reference))
+                visited.add(reference)
                 traverse_jobset_recursive(
-                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth+1, visited, unique_packages_enabled, fowfol, gigmi)
+                        hydra, func, job, reference, recursive_mode_enabled, exponential_back_off_enabled, only_visit_once_enabled, whitelist_enabled, depth+1, visited, unique_packages_enabled, stripped_references_visited, references_visited)
 

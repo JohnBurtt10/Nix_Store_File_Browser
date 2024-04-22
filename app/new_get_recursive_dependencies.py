@@ -8,7 +8,7 @@ from collections import deque
 
 def get_recursive_dependencies(hydra, update_progress, report_error, project_name, jobset, traverse_jobset, references_dict, file_size_dict,
                                only_visit_once_enabled=True, progress_bar_enabled=False, progress_bar_desc="Default progress bar desc", jobs=job_whitelist,
-                               unique_packages_enabled=False, fowfol=set(), gigmi=set(), maximum_recursive_file_size=None):
+                               unique_packages_enabled=False, stripped_references_visited=set(), references_visited=set(), maximum_recursive_file_size=None):
 
     recursive_dependencies_dict = {}
 
@@ -22,9 +22,8 @@ def get_recursive_dependencies(hydra, update_progress, report_error, project_nam
                 traverse_jobset(hydra, update_progress, report_error, project_name, jobset,
                                 lambda job, raw_data: _get_recursive_dependencies(raw_data, _recursive_dependencies_dict, maximum_recursive_file_size,
                                                                                   references_dict, file_size_dict), recursive_mode_enabled=True, only_visit_once_enabled=True,
-                                                                                  progress_bar_enabled=True, whitelist_enabled=True,
-                                                                                  progress_bar_desc="Getting recursive dependencies", jobs=[job], cancellable=True,
-                                                                                  unique_packages_enabled=unique_packages_enabled, fowfol=fowfol, gigmi=gigmi)
+                                progress_bar_enabled=True, whitelist_enabled=True, progress_bar_desc="Getting recursive dependencies", jobs=[job], cancellable=True,
+                                unique_packages_enabled=unique_packages_enabled, stripped_references_visited=stripped_references_visited, references_visited=references_visited)
 
                 get_recursive_dependencies_cache[(
                     jobset, job, unique_packages_enabled, maximum_recursive_file_size)] = _recursive_dependencies_dict

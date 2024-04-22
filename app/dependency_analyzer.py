@@ -3,7 +3,6 @@ from .cache_directories import *
 from .raw_data_utilities import extract_section
 from . import cache_utils
 import asyncio
-import concurrent.futures
 from .traverse_jobset import traverse_jobset
 from .count_descendants import count_descendants
 from .calculate_dependency_weight import calculate_dependency_weight
@@ -71,9 +70,6 @@ def compute_top_n_information(store_path_entropy_dict,
                                                                                                                                              hydra,
                                                                                                                                              count_descendants)
 
-    # return
-    # print(f"finished get_cached_or_compute_reverse_dependency_weight(): {reverse_dependency_weight_dict}")
-    # print(f"reverse_dependency_weight_dict: {reverse_dependency_weight_dict}")
     # Combine all dictionaries into a single dictionary with keys from file size dict
     combined_dict = {
         key: (store_path_file_size_dict.get(key, 0),
@@ -90,20 +86,21 @@ def compute_top_n_information(store_path_entropy_dict,
         filter_key_select = filter.get('filter_key_select')
         filter_value = int(filter.get('filter_value'))
 
-        print(f"extremum_select: {extremum_select}, filter_key_select: {filter_key_select}, filter_value: {filter_value}")
+        # print(f"extremum_select: {extremum_select}, filter_key_select: {filter_key_select}, filter_value: {filter_value}")
 
         # Filter out items based on conditions
 
         filtered_dict = {
             key: (file_size, entropy, dependency_weight, reverse_dependency_weight) for key, (file_size, entropy, dependency_weight, reverse_dependency_weight) in filtered_dict.items()
             if (extremum_select == 'minimum' and filter_key_select == 'entropy' and entropy >= filter_value) or
-                (extremum_select == 'minimum' and filter_key_select == 'file_size' and file_size >= filter_value) or
-                (extremum_select == 'minimum' and filter_key_select == 'dependency_weight' and dependency_weight >= filter_value) or
-                (extremum_select == 'minimum' and filter_key_select == 'reverse_dependency_weight' and reverse_dependency_weight >= filter_value) or
-                (extremum_select == 'maximum' and filter_key_select == 'entropy' and entropy <= filter_value) or
-                (extremum_select == 'maximum' and filter_key_select == 'file_size' and file_size <= filter_value) or
-                (extremum_select == 'maximum' and filter_key_select == 'dependency_weight' and dependency_weight <= filter_value) or
-                (extremum_select == 'maximum' and filter_key_select == 'reverse_dependency_weight' and reverse_dependency_weight <= filter_value)
+            (extremum_select == 'minimum' and filter_key_select == 'file_size' and file_size >= filter_value) or
+            (extremum_select == 'minimum' and filter_key_select == 'dependency_weight' and dependency_weight >= filter_value) or
+            (extremum_select == 'minimum' and filter_key_select == 'reverse_dependency_weight' and reverse_dependency_weight >= filter_value) or
+            (extremum_select == 'maximum' and filter_key_select == 'entropy' and entropy <= filter_value) or
+            (extremum_select == 'maximum' and filter_key_select == 'file_size' and file_size <= filter_value) or
+            (extremum_select == 'maximum' and filter_key_select == 'dependency_weight' and dependency_weight <= filter_value) or
+            (extremum_select == 'maximum' and filter_key_select ==
+             'reverse_dependency_weight' and reverse_dependency_weight <= filter_value)
         }
 
     # Choose the sorting order based on user input
@@ -195,22 +192,6 @@ async def get_children_recursive(hydra, hash, visited=None):
     return children
 
 
-def sort_chunk(chunk, project_name, hydra, jobset):
-    print(f"sort_chunk!")
-    return sorted(chunk, key=lambda item: temp(project_name, hydra, jobset, item), reverse=True)
-
-
-def parallel_sort(input_list, project_name, hydra, jobset, chunk_size=100):
-    chunks = [input_list[i:i + chunk_size]
-              for i in range(0, len(input_list), chunk_size)]
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(executor.map(lambda chunk: sort_chunk(
-            chunk, project_name, hydra, jobset), chunks))
-
-    return [item for sublist in results for item in sublist]
-
-
 def overlap_and_disjoint(set1, set2):
     # Calculate the overlap (intersection) of the two sets
     overlap_set = set1.intersection(set2)
@@ -232,7 +213,8 @@ def combine(project_name, hydra, list1, list2, jobsets=["v2.32.0-20240129033831-
     total_nodes = {}
 
     for jobset in jobsets:
-        t_w, t_n = temp(project_name, hydra, jobset)
+        t_w, t_n, _, _, _ = cache_utils.get_cached_or_compute_dependency_weight(
+            project_name, jobset, dependency_weight_cache, hydra, calculate_dependency_weight, traverse_jobset)
         total_weight = {key: total_weight.get(
             key, 0) + t_w.get(key, 0) for key in set(total_weight.keys()).union(set(t_w.keys()))}
         total_nodes = {key: total_nodes.get(
@@ -266,12 +248,6 @@ def compare(hydra, base_node, compare_node):
     overlap_list = list(overlap_set)
     disjoint_list = list(disjoint_set)
     return (overlap_list, disjoint_list)
-
-
-def temp(project_name, hydra, jobset):
-    total_weight, total_nodes, _, _, _ = cache_utils.get_cached_or_compute_dependency_weight(
-        project_name, jobset, dependency_weight_cache, hydra, calculate_dependency_weight, traverse_jobset)
-    return total_weight, total_nodes
 
 # BUG: I think that when there is a new jobset at least the reverse dependencies gets messed up bc of update_dicts_cache
 

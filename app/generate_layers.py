@@ -76,16 +76,11 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
             file_size_dict = {}
 
-            visited = {}
-
             traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                             lambda job, raw_data: populate_references_and_file_sizes(
                                 raw_data, references_dict, file_size_dict, jobset, job),
                             only_visit_once_enabled=True,
                             recursive_mode_enabled=True,
-                            whitelist_enabled=False,
-                            exponential_back_off_enabled=False,
-                            visited=visited,
                             cancellable=True,
                             unique_packages_enabled=False)
             cache[(jobset, "fgl0wfl")] = references_dict, file_size_dict
@@ -104,9 +99,12 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
             package_file_size_cache[jobset] = package_file_size, unique_packge_world_file_size
 
-        answer, _ = __generate_layers(hydra, update_progress, report_error,
-                                      send_layer, update_layer_progress,
-                                      project_name, jobset, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size, session_id, start_date, end_date)
+        answer = __generate_layers(hydra, update_progress, report_error,
+                                   send_layer, update_layer_progress,
+                                   project_name, jobset, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, package_file_size, session_id, start_date, end_date)
+
+        if answer is None:
+            return None
 
         generate_layers_cache[(jobset, minimum_layer_recursive_file_size, maximum_layer_recursive_file_size,
                                start_date, end_date)] = answer, recursive_dependencies_dict
@@ -121,7 +119,7 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
             else:
                 job_layer_dict[job] = [value]
 
-    containerData = {}
+    container_data = {}
 
     for job, layers in job_layer_dict.items():
         # Sorting the dictionary of dictionaries based on 'total_recursive_file_size'
@@ -135,7 +133,7 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
         current_partition_packages = set()
 
         previous_accounted_for_packages = set()
-        containerData[job] = []
+        container_data[job] = []
         partition_count = 0
         # if package_partition_dict[x] = y, then layer x (using the 'packages' field as index) is in partition y
         package_partition_dict = {}
@@ -157,7 +155,8 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
             new = packages.difference(previous_accounted_for_packages)
 
-            previous_accounted_for_packages = previous_accounted_for_packages.union(new)
+            previous_accounted_for_packages = previous_accounted_for_packages.union(
+                new)
 
             previous_partition_packages = packages.union(
                 previous_partition_packages)
@@ -196,6 +195,8 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
         for index, layer in enumerate(sorted_data):
             first_item = next(iter(layer['packages']))
 
+            stripped_first_item = strip_hash(first_item)
+
             first_item_file_size = str(
                 round(package_file_size[first_item]/(1024 * 1024), 2))
 
@@ -209,10 +210,10 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
                 layer_string = str(partition_start_end_index[package_partition_dict[str(layer['packages'])]]['smallest']) + '-' + str(
                     partition_start_end_index[package_partition_dict[str(layer['packages'])]]['largest'])
 
-            containerData[job].append({'layer': 'Layer ' + layer_string, 'packages': [first_item], 'packageFileSize': first_item_file_size + 'MB', 'newData': layer['new_data_magnitude'] +
-                                      'MB', 'accountedForPackages': stripped_packages, 'totalRecursiveFileSize': layer['total_recursive_file_size_magnitude'] + 'MB'})
+            container_data[job].append({'layer': 'Layer ' + layer_string, 'packages': [stripped_first_item], 'packageFileSize': first_item_file_size + 'MB', 'newData': layer['new_data_magnitude'] +
+                                        'MB', 'accountedForPackages': stripped_packages, 'totalRecursiveFileSize': layer['total_recursive_file_size_magnitude'] + 'MB'})
 
-    return containerData
+    return container_data
 
     # break
 
@@ -273,6 +274,7 @@ def find_highest_average_package_combination(packages, answer, combination, is_c
 #         return 0
 #     average = 100*(sum/((count)))
 #     return average
+
 
 def update_relative_accounted_for_dict(recursive_dependencies_dict, package_file_size, accounted_for_packages_in_jobs, combination, master_list):
 
@@ -340,9 +342,10 @@ def __generate_layers(hydra, update_progress, report_error,
     # combined master list that doesn't change
     recursive_dependencies_dict = {}
 
-    fowfol = set()
+    # these are not init in the for loop such that each the images use the same version of a package
+    references_visited = set()
 
-    gigmi = set()
+    stripped_references_visited = set()
 
     parsed_start_date = datetime.strptime(
         start_date, '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -355,16 +358,14 @@ def __generate_layers(hydra, update_progress, report_error,
 
     maximum_layer_recursive_file_size_bytes = maximum_layer_recursive_file_size*1024*1024
 
-    if (jobset, "fgl0wfl") in cache:
+    if jobset in references_and_file_size_cache:
 
-        references_dict, file_size_dict = cache[(jobset, "fgl0wfl")]
+        references_dict, file_size_dict = references_and_file_size_cache[jobset]
     else:
 
         references_dict = {}
 
         file_size_dict = {}
-
-        visited_store_paths = {}
 
         traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                         lambda job, raw_data: populate_references_and_file_sizes(
@@ -372,11 +373,9 @@ def __generate_layers(hydra, update_progress, report_error,
                         only_visit_once_enabled=True,
                         recursive_mode_enabled=True,
                         whitelist_enabled=False,
-                        exponential_back_off_enabled=False,
-                        visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
-        cache[(jobset, "fgl0wfl")] = references_dict, file_size_dict
+        references_and_file_size_cache[jobset] = references_dict, file_size_dict
 
     for job in job_whitelist:
 
@@ -384,7 +383,7 @@ def __generate_layers(hydra, update_progress, report_error,
         _recursive_dependencies_dict = get_recursive_dependencies(
             hydra, update_progress, report_error, project_name, jobset, traverse_jobset, references_dict, file_size_dict, jobs=[
                 job],
-            unique_packages_enabled=True, fowfol=fowfol, gigmi=gigmi, maximum_recursive_file_size=maximum_layer_recursive_file_size_bytes)
+            unique_packages_enabled=True, references_visited=references_visited, stripped_references_visited=stripped_references_visited, maximum_recursive_file_size=maximum_layer_recursive_file_size_bytes)
 
         recursive_dependencies_dict.update(_recursive_dependencies_dict)
 
@@ -451,7 +450,7 @@ def __generate_layers(hydra, update_progress, report_error,
                         combination_layer_count_dict[combination] = 0
 
                     if file_exists(str(session_id)):
-                        return True
+                        return None
 
                     combination_recursive_dependencies = {}
 
@@ -619,7 +618,7 @@ def __generate_layers(hydra, update_progress, report_error,
 
     send_layers(answer, is_creating_zero_entropy_layers, send_layer)
     print("Layer generation completed!")
-    return answer, recursive_dependencies_dict
+    return answer
 
 
 def main():

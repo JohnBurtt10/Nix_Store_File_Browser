@@ -209,20 +209,18 @@ def get_cached_or_compute_reverse_dependency_weight(project_name, jobset, revers
 
         file_size_dict = {}
 
-        visited_store_paths = {}
-        traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
+        traverse_jobset(hydra, lambda task, progress: None, lambda error: None, project_name, jobset,
                         lambda job, raw_data: _populate_references_and_file_size(
                             raw_data, references_dict, file_size_dict, jobset, job),
                         only_visit_once_enabled=True,
                         recursive_mode_enabled=True,
                         whitelist_enabled=False,
                         exponential_back_off_enabled=False,
-                        visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
 
         # TODO: Why are the dicts acting immutable??
-        traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
+        traverse_jobset(hydra, lambda task, progress: None, lambda error: None, project_name, jobset,
                         lambda job, raw_data: count_descendants(hydra,
                                                                 raw_data,
                                                                 reverse_dependency_weight_dict,
@@ -253,8 +251,6 @@ def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_wei
 
         file_size_dict = {}
 
-        visited_store_paths = []
-
         traverse_jobset(hydra, lambda: None, lambda: None, project_name, jobset,
                         lambda job, raw_data: _populate_references_and_file_size(
                             raw_data, references_dict, file_size_dict, jobset, job),
@@ -262,7 +258,6 @@ def get_cached_or_compute_dependency_weight(project_name, jobset, dependency_wei
                         recursive_mode_enabled=True,
                         whitelist_enabled=False,
                         exponential_back_off_enabled=False,
-                        visited_store_paths=visited_store_paths,
                         cancellable=True,
                         unique_packages_enabled=False)
 

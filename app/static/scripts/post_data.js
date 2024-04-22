@@ -28,7 +28,7 @@ function explorePackages() {
 
     // Modify the form data
     var formValues = [];
-    var forms = document.querySelectorAll('#container div');
+    var forms = document.querySelectorAll('#container .form-row');
     forms.forEach(function (form, index) {
         var inputs = form.querySelectorAll('select, input');
         var formData = {};
@@ -59,6 +59,10 @@ function explorePackages() {
     });
 
     socket.on('error', function (data) {
+        console.log('Encountered exception while generating layers: ', data);
+        showErrorBanner();
+        generatePackageListBtn.disabled = false;
+        inProgress = false;
     });
 
     var isConnected = false;

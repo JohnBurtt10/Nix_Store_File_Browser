@@ -133,6 +133,22 @@
         <!-- Documentation Toggle Button -->
         <div id="documentation-toggle">Documentation</div>
 
+        <!-- Error Message Banner Container -->
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <!-- Bootstrap Alert for Error Message -->
+                    <div id="errorMessageBanner" class="alert alert-danger alert-dismissible fade show" role="alert"
+                        style="display: none;">
+                        <strong>Error:</strong> An error has occurred. Please try again later.
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Include Documentation Panel -->
         {% include 'package_explorer_documentation_panel.html' %}
         <!-- Column 1 content goes here -->
@@ -185,7 +201,7 @@
             <hr> <!-- Horizontal line -->
 
             <!-- Package List -->
-            
+
             <h3 class="mb-3">Package List</h3>
 
             <div id="storePathList">
@@ -216,6 +232,15 @@
     <script src="{{ url_for('static', filename='scripts/post_data.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="{{ url_for('static', filename='scripts/script.js') }}"></script>
+    
+
+    <script>
+        // JavaScript function to show error message banner
+        function showErrorBanner() {
+            $('#errorMessageBanner').fadeIn();
+        }
+
+    </script>
 
 </body>
 
