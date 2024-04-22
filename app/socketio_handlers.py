@@ -7,7 +7,7 @@ from .merge_dicts_with_preference import merge_2d_dicts_with_preference, merge_d
 from .new_calculate_entropy import get_cached_or_fetch_store_path_entropy_dict
 from .get_sorted_jobsets import get_sorted_jobsets
 from .generate_layers import generate_layers
-from .cancel_operation import create_file, file_exists
+from . import cancel_operation
 from .extract_earliest_latest_values import extract_earliest_latest_values
 from flask_socketio import emit
 from flask import request
@@ -44,7 +44,18 @@ def proceed():
 @socketio.on('cancel', namespace='/test')
 def cancel():
     session_id = request.sid
-    create_file(str(session_id))
+    cancel_operation.create_file(str(session_id))
+
+# def delete_file(file_path):
+#     try:
+#         os.remove(file_path)
+#         print("File deleted successfully:", file_path)
+#     except FileNotFoundError:
+#         print("File not found:", file_path)
+#     except PermissionError:
+#         print("Permission denied:", file_path)
+#     except Exception as e:
+#         print("An error occurred:", e)
 
 
 @socketio.on('generate_layers', namespace='/test')
@@ -70,7 +81,7 @@ def start_progress(data):
             'layer_progress', progress, namespace='/test')
 
     def report_error(error):
-        socketio.emit('error', {error}, namespace='/test')
+        socketio.emit('error', error, namespace='/test')
 
     def send_layer(layer):
         # print(f"layer: {layer}")
@@ -94,8 +105,19 @@ def start_progress(data):
 
     socketio.emit('timestamp', current_timestamp, namespace='/test')
 
-    answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress,
+    try:
+        answer = generate_layers(hydra, update_progress, report_error, send_layer, update_layer_progress,
                              minimum_layer_recursive_file_size, maximum_layer_recursive_file_size, start_date, end_date, session_id)
+        
+        if answer is None:
+            session_id = request.sid
+            cancel_operation.delete_file(str(session_id))
+            return
+        
+    except Exception as e:
+        report_error(str(e))
+        print(f"Encountered exception: {e} while generating layers")
+        return
 
     # Open the file and write JSON data to it
     with open(file_path, "w") as file:
