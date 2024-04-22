@@ -67,9 +67,9 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
 
     else:
 
-        if (jobset, "fgl0wfl") in cache:
+        if jobset in reference_file_size_dicts_cache:
 
-            references_dict, file_size_dict = cache[(jobset, "fgl0wfl")]
+            references_dict, file_size_dict = reference_file_size_dicts_cache[jobset]
         else:
 
             references_dict = {}
@@ -83,7 +83,7 @@ def generate_layers(hydra, update_progress, report_error, send_layer, update_lay
                             recursive_mode_enabled=True,
                             cancellable=True,
                             unique_packages_enabled=False)
-            cache[(jobset, "fgl0wfl")] = references_dict, file_size_dict
+            reference_file_size_dicts_cache[jobset] = references_dict, file_size_dict
 
         recursive_dependencies_dict = get_recursive_dependencies(
             hydra, update_progress, report_error, project_name, jobset, traverse_jobset, unique_packages_enabled=True, references_dict=references_dict,
@@ -358,9 +358,9 @@ def __generate_layers(hydra, update_progress, report_error,
 
     maximum_layer_recursive_file_size_bytes = maximum_layer_recursive_file_size*1024*1024
 
-    if jobset in references_and_file_size_cache:
+    if jobset in reference_file_size_dicts_cache:
 
-        references_dict, file_size_dict = references_and_file_size_cache[jobset]
+        references_dict, file_size_dict = reference_file_size_dicts_cache[jobset]
     else:
 
         references_dict = {}
@@ -375,7 +375,7 @@ def __generate_layers(hydra, update_progress, report_error,
                         whitelist_enabled=False,
                         cancellable=True,
                         unique_packages_enabled=False)
-        references_and_file_size_cache[jobset] = references_dict, file_size_dict
+        reference_file_size_dicts_cache[jobset] = references_dict, file_size_dict
 
     for job in job_whitelist:
 
