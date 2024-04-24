@@ -1,60 +1,10 @@
 # Nix_Store_File_Browser
 
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.clearpathrobotics.com/jburtt/nix_store_file_browser.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.clearpathrobotics.com/jburtt/nix_store_file_browser/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-## Name
-Nix Package Explorer and Layer Generator
-
 ## Description
 The goal with the Nix Package Explorer and Layer Generator is twofold, with the first being to provide an intuitive way to explore the packages that compose a project. This is accomplished by being able to generate lists of packages with the `Package Explorer` tool that provide meaningful metrics such as entropy and dependency weight as well as by allowing the client to specify sort and filter critera based on those same metrics. From there, the client can take this newfound deeper understanding of their project to the `Layer Generator` to create optimized Nix Layers for their containers.
 
 ## Motivation
 Optimizing Nix layers enhances build performance and reduces disk space usage by minimizing redundant dependencies, leading to faster deployments and simplified maintenance of Nix environments. This mjkensures consistent builds, improves reproducibility, and streamlines development workflows.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
 ## Visuals
 ![alt text](media/landing_page.png "Landing Page")
@@ -90,8 +40,13 @@ For people who want to make changes to your project, it's helpful to have some d
 
 You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## Authors
+
+John Burtt
+
+## Acknowledgments
+
+Special thanks to Mike Purvis, Anil Kapu, Ivor Wanders, and Ferenc Koncz for their valuable contributions and support throughout the development process.
 
 ## License
 For open source projects, say how it is licensed.

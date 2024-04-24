@@ -182,8 +182,6 @@ function generateLayers() {
 
         const jobProgressDict = data['relative_accounted_for_dict'];
 
-        console.log("jobProgressDict", jobProgressDict);
-
         const layerInfoElem = document.getElementById('layerInfo');
 
         const layerCount = data['layer_count'];
@@ -258,7 +256,6 @@ function generateLayers() {
             const value = parseFloat(jobProgressDict[key]);
             // Check if a div with corresponding ID already exists
             if (!document.getElementById(key)) {
-                console.log('creating new div for ', key);
                 // Create a new div
                 const outterDiv = document.createElement('div');
                 outterDiv.id = key;
@@ -296,7 +293,6 @@ function generateLayers() {
             } else {
                 progressBar = document.getElementById(key + 'Bar');
             }
-            console.log("key: ", key, "previousProgressDict[key]: ", previousProgressDict[key]);
             move(Math.round(value * 100), previousProgressDict[key], progressBar.id);
             previousProgressDict[key] = Math.round(value * 100);
         };
@@ -428,14 +424,6 @@ function handleResult(response) {
 
     i = i + 1;
 
-
-
-    // const accountedForPackagesFileSizeGB = (accountedForPackagesFileSize / Math.pow(1024, 3)).toFixed(2);
-    // var layerDownloadInfoElem = document.getElementById("layerDownloadInfo");
-    // layerDownloadInfoElem.innerHTML = "Now downloading layer which accounts for " + accountedForPackagesFileSizeGB + " new gigabytes across " + combination.length + " images..."
-
-
-    // }
 }
 
 

@@ -14,8 +14,6 @@ var socket;
 
 function explorePackages() {
 
-    console.log('explorePackages');
-
     if (inProgress) {
         return;
     }
@@ -52,7 +50,7 @@ function explorePackages() {
     socket.emit('explore_packages', formData);
 
     socket.on('message', function (msg) {
-        console.log(msg.data);
+        // console.log(msg.data);
     });
 
     socket.on('progress', function (data) {
@@ -94,7 +92,6 @@ function explorePackages() {
     });
 
     socket.on('result', function (data) {
-        console.log(data);
         // $('#result').text('Result: ' + JSON.stringify(data));
         handleResult(data);
         generatePackageListBtn.disabled = false;
@@ -108,7 +105,6 @@ function explorePackages() {
 }
 
 function createListItem(path, details, earliestJobset, latestJobset) {
-    console.log(details)
     // Create li element
     var listItem = document.createElement("li");
 
@@ -223,7 +219,6 @@ function createListItem(path, details, earliestJobset, latestJobset) {
     var tbodyElement = document.createElement("tbody");
 
     for (var job in details.reverse_dependencies) {
-        console.log(details.reverse_dependencies[job])
         if (details.reverse_dependencies.hasOwnProperty(job)) {
             var reverseDep = details.reverse_dependencies[job];
             var trReverseDep = document.createElement("tr");
@@ -233,11 +228,11 @@ function createListItem(path, details, earliestJobset, latestJobset) {
 
             var tdEarliest = document.createElement("td");
             // console.log("reverseDep.earliest: ", reverseDep.latest, "details.earliest_jobset: ", details.reverse_dependencies[job].latest);
-            tdEarliest.className = reverseDep.earliest !== earliestJobset ? "highlight" : "";
+            // tdEarliest.className = reverseDep.earliest !== earliestJobset ? "highlight" : "";
             tdEarliest.textContent = reverseDep.earliest;
 
             var tdLatest = document.createElement("td");
-            tdLatest.className = reverseDep.latest !== latestJobset ? "highlight" : "";
+            // tdLatest.className = reverseDep.latest !== latestJobset ? "highlight" : "";
             tdLatest.textContent = reverseDep.latest;
 
             trReverseDep.appendChild(tdJob);

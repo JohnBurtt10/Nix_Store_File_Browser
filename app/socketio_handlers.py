@@ -128,7 +128,6 @@ def start_progress(data):
 
 @socketio.on('explore_packages', namespace='/test')
 def explore_packages(data):
-
     # data = request.json  # Assuming the data is in JSON format
     # client input
     # Unpack values into variables
@@ -149,6 +148,10 @@ def explore_packages(data):
     print(f"selected_project: {selected_project}")
     print(f"advanced_entropy_mode_enabled: {advanced_entropy_mode_enabled}")
 
+    # TODO: fix this
+
+
+    
     sorted_jobsets = get_sorted_jobsets(hydra, selected_project)[:5]
 
     latest_jobset = sorted_jobsets[0]
